@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useLab } from "@/context/LabSession";
 
 const NUMBERS = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
@@ -9,7 +8,6 @@ const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 
 type Bet = "red" | "black" | "green";
 
 export function RouletteWheel() {
-  const { requestLocation, visitor } = useLab();
   const [angle, setAngle] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<number | null>(null);
@@ -37,16 +35,16 @@ export function RouletteWheel() {
   };
 
   return (
-    <div className="rounded-3xl border border-[var(--line)] bg-[#14110c] p-5">
-      <div className="flex items-end justify-between">
+    <div className="rounded-2xl border border-[var(--line)] bg-[#14110c] p-4 sm:rounded-3xl sm:p-5">
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gold)]">Ruleta</p>
-          <h2 className="font-serif text-3xl">Orbita</h2>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--gold)]">Ruleta</p>
+          <h2 className="font-serif text-2xl sm:text-3xl">Orbita</h2>
         </div>
         <p className="text-sm text-[var(--muted)]">Fichas: {credits}</p>
       </div>
-      <div className="mt-6 grid items-center gap-6 md:grid-cols-[280px_1fr]">
-        <div className="relative mx-auto h-64 w-64">
+      <div className="mt-5 grid items-center gap-5 md:mt-6 md:grid-cols-[280px_1fr] md:gap-6">
+        <div className="relative mx-auto h-52 w-52 sm:h-64 sm:w-64">
           <div className="absolute left-1/2 top-0 z-10 h-6 w-1 -translate-x-1/2 rounded bg-[var(--gold)]" />
           <svg
             viewBox="0 0 200 200"
@@ -80,7 +78,7 @@ export function RouletteWheel() {
                 key={item}
                 type="button"
                 onClick={() => setBet(item)}
-                className={`rounded-xl px-4 py-2 text-sm capitalize ${
+                className={`min-h-11 rounded-xl px-4 py-2 text-sm capitalize ${
                   bet === item ? "bg-[var(--gold)] text-black" : "border border-white/15"
                 }`}
               >
@@ -89,34 +87,17 @@ export function RouletteWheel() {
             ))}
           </div>
           <p className="mt-4 text-sm text-[var(--muted)]">{message}</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={spin}
-              disabled={spinning}
-              className="rounded-xl bg-[var(--gold)] px-5 py-3 font-semibold text-black disabled:opacity-50"
-            >
-              Lanzar bola
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                void requestLocation("Jackpot regional de Orbita. Geolocalización solo si el usuario acepta el diálogo nativo.")
-              }
-              className="rounded-xl border border-white/15 px-5 py-3 text-sm"
-            >
-              Jackpot de mi región
-            </button>
-          </div>
-          {visitor?.locationStatus === "granted" ? (
-            <p className="mt-3 text-xs text-emerald-300">
-              Región aproximada: {visitor.locationLat}, {visitor.locationLng}
-            </p>
-          ) : (
-            <p className="mt-3 text-xs text-[var(--muted)]">
-              La ubicación no se consulta hasta que pulses el botón. El admin verá el estado real.
-            </p>
-          )}
+          <button
+            type="button"
+            onClick={spin}
+            disabled={spinning}
+            className="mt-4 min-h-12 w-full rounded-xl bg-[var(--gold)] px-5 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+          >
+            Lanzar bola
+          </button>
+          <p className="mt-3 text-xs text-[var(--muted)]">
+            Las fichas son de laboratorio. La ubicación solo se pide al aceptar los términos de entrada.
+          </p>
         </div>
       </div>
     </div>

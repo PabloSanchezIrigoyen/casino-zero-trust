@@ -116,8 +116,8 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
         setVisitor(null);
       }
       pushToast({
-        title: "Sin conexión al laboratorio",
-        body: error instanceof Error ? error.message : "El servidor no respondió.",
+        title: "No hay conexión ahora",
+        body: "Revisa tu red e inténtalo otra vez. Tus datos no se perdieron.",
         tone: "danger",
       });
     });
@@ -145,7 +145,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     };
   }, [ready, loggedIn, isAdmin, sync, pushToast]);
 
-  const afterAuth = async (token: string, visitorId: string, next: Visitor, mode: "cuenta" | "sesión") => {
+  const afterAuth = async (token: string, visitorId: string, next: Visitor) => {
     persistUserSession(token, visitorId, {
       cookies: cookieChoice === true,
       localStorage: localStorageOk,
@@ -162,21 +162,16 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       else if (saved === "0") setCookieChoiceState(false);
       else setCookieChoiceState(null);
     }
-    pushToast({
-      title: mode === "cuenta" ? "Cuenta creada" : "Sesión iniciada",
-      body: "Los permisos se pedirán con aviso. Nada se activa en silencio.",
-      tone: "ok",
-    });
   };
 
   const register = async (email: string, password: string) => {
     const data = await api.register({ email, password, ...(await payload()) });
-    await afterAuth(data.token, data.visitor.visitorId, data.visitor as Visitor, "cuenta");
+    await afterAuth(data.token, data.visitor.visitorId, data.visitor as Visitor);
   };
 
   const login = async (email: string, password: string) => {
     const data = await api.login({ email, password, ...(await payload()) });
-    await afterAuth(data.token, data.visitor.visitorId, data.visitor as Visitor, "sesión");
+    await afterAuth(data.token, data.visitor.visitorId, data.visitor as Visitor);
   };
 
   const logout = () => {
@@ -186,15 +181,41 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     setTermsAccepted(false);
     setLoggedIn(false);
     setVisitor(null);
-    pushToast({ title: "Sesión cerrada", body: "Vuelve a entrar con tu correo para seguir el laboratorio.", tone: "info" });
+    pushToast({
+      title: "Hasta luego",
+      body: "Cerramos tu sesión. Cuando vuelvas, entra otra vez con tu correo.",
+      tone: "info",
+    });
   };
 
-  const completeTerms = useCallback((nextVisitor?: Visitor | null) => {
-    sessionStorage.setItem("zt_terms", "1");
-    setTermsAccepted(true);
-    if (nextVisitor) setVisitor(nextVisitor);
-    else void sync().catch(() => undefined);
-  }, [sync]);
+  const persistEntryConsent = useCallback(async () => {
+    try {
+      setCookieChoiceState(true);
+      setStorageChoice(true);
+      setLocalOk(true);
+      localStorage.setItem("zt_cookies", "1");
+      localStorage.setItem("zt_storage", "1");
+      const body = { ...(await payload()), cookieConsent: true, localStorageOk: true };
+      const data = (await api.consent(body)) as { visitor: Visitor };
+      setVisitor(data.visitor);
+      persistUserSession(getUserToken(), data.visitor.visitorId, {
+        cookies: true,
+        localStorage: true,
+      });
+    } catch {
+      // El laboratorio ya tiene la sesión; las cookies locales quedaron marcadas.
+    }
+  }, [payload]);
+
+  const completeTerms = useCallback(
+    (nextVisitor?: Visitor | null) => {
+      sessionStorage.setItem("zt_terms", "1");
+      setTermsAccepted(true);
+      if (nextVisitor) setVisitor(nextVisitor);
+      void persistEntryConsent();
+    },
+    [persistEntryConsent],
+  );
 
   const setCookieChoice = async (accepted: boolean) => {
     try {
@@ -210,17 +231,10 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
         cookies: accepted,
         localStorage: accepted,
       });
-      pushToast({
-        title: accepted ? "Cookies y almacenamiento aceptados" : "Cookies y almacenamiento rechazados",
-        body: accepted
-          ? "Se guardó el consentimiento: cookie de sesión y datos en este navegador (localStorage)."
-          : "No se guardó cookie ni datos en el disco de este navegador.",
-        tone: accepted ? "ok" : "warn",
-      });
     } catch (error) {
       pushToast({
-        title: "No se pudieron guardar las cookies",
-        body: error instanceof Error ? error.message : "Inténtalo de nuevo.",
+        title: "No pudimos guardar tu decisión",
+        body: error instanceof Error ? error.message : "Inténtalo otra vez en un momento.",
         tone: "danger",
       });
     }
@@ -238,10 +252,10 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       localStorage: ok,
     });
     pushToast({
-      title: ok ? "Almacenamiento local autorizado" : "Almacenamiento local no autorizado",
+      title: ok ? "Guardado en este teléfono o computadora" : "Sin guardado local",
       body: ok
-        ? "Guardaremos la sesión, fichas y datos técnicos del navegador."
-        : "No persistiremos preferencias en el disco del navegador.",
+        ? "Recordaremos que ya entraste en este navegador."
+        : "No guardaremos preferencias en este dispositivo.",
       tone: ok ? "ok" : "warn",
     });
   };
@@ -259,44 +273,68 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
 
   const requestCamera = async (context: string) => {
     pushToast({
-      title: "Cámara",
-      body: "El navegador va a mostrar su propio diálogo. El preview quedará visible. No se graba ni se envía video.",
+      title: "Vamos a pedir la cámara",
+      body: "Verás el diálogo del navegador. El video se muestra aquí y no se graba.",
       tone: "info",
     });
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       await reportPermission("camera", "granted", context, { cameraStatus: "granted" });
-      pushToast({ title: "Cámara activa", body: "Mira el recuadro. Puedes cortar el stream cuando salgas.", tone: "ok" });
+      pushToast({
+        title: "Cámara encendida",
+        body: "Mírate en el recuadro. Al salir de la mesa se apaga sola.",
+        tone: "ok",
+      });
       return stream;
     } catch {
       await reportPermission("camera", "denied", context, { cameraStatus: "denied" });
-      pushToast({ title: "Cámara denegada", body: "El laboratorio registró la negativa. No hay video oculto.", tone: "warn" });
+      pushToast({
+        title: "Sin cámara, sin problema",
+        body: "Puedes seguir jugando. El laboratorio anotó que no diste permiso.",
+        tone: "warn",
+      });
       return null;
     }
   };
 
   const requestMicrophone = async (context: string) => {
     pushToast({
-      title: "Micrófono",
-      body: "Autorización independiente. Verás un medidor de audio. No se guarda voz.",
+      title: "Vamos a pedir el micrófono",
+      body: "Es independiente de la cámara. Verás un medidor; no se guarda tu voz.",
       tone: "info",
     });
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       await reportPermission("microphone", "granted", context, { microphoneStatus: "granted" });
-      pushToast({ title: "Micrófono activo", body: "El indicador de nivel confirma que el permiso es real.", tone: "ok" });
+      pushToast({
+        title: "Micrófono listo",
+        body: "Si el medidor se mueve, el permiso es real.",
+        tone: "ok",
+      });
       return stream;
     } catch {
       await reportPermission("microphone", "denied", context, { microphoneStatus: "denied" });
-      pushToast({ title: "Micrófono denegado", body: "Quedó documentado. No hay captura en segundo plano.", tone: "warn" });
+      pushToast({
+        title: "Sin micrófono, sin problema",
+        body: "Puedes seguir en la mesa. No hay captura en segundo plano.",
+        tone: "warn",
+      });
       return null;
     }
   };
 
   const requestLocation = async (context: string) => {
+    if (visitor?.locationStatus === "granted" || visitor?.locationStatus === "denied") {
+      pushToast({
+        title: "Ubicación ya quedó en la entrada",
+        body: "No la volvemos a pedir. La decisión de los términos sigue valiendo.",
+        tone: "info",
+      });
+      return;
+    }
     pushToast({
       title: "Ubicación",
-      body: "En celular pide GPS. En una computadora el navegador solo estima con la red.",
+      body: "En el celular suele ser GPS. En una computadora el navegador estima con la red.",
       tone: "info",
     });
     try {
@@ -308,23 +346,36 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
         locationAccuracy: pos.coords.accuracy,
       });
       pushToast({
-        title: "Ubicación autorizada",
+        title: "Ubicación guardada",
         body:
           pos.coords.accuracy > 1000
-            ? "Se guardó una estimación de red. Esta computadora no tiene GPS."
-            : "Se guardó el GPS del dispositivo (metros).",
+            ? "Quedó una estimación de red: esta computadora no tiene GPS."
+            : "Quedó el GPS de tu dispositivo, en metros.",
         tone: "ok",
       });
     } catch {
       await reportPermission("location", "denied", context, { locationStatus: "denied" });
-      pushToast({ title: "Ubicación denegada", body: "El casino no usará geolocalización.", tone: "warn" });
+      pushToast({
+        title: "Sin ubicación, sin problema",
+        body: "El casino no la usará. No te la volveremos a pedir.",
+        tone: "warn",
+      });
     }
   };
 
   const requestNotifications = async (context: string) => {
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      await reportPermission("notifications", "granted", context, { notificationStatus: "granted" });
+      pushToast({
+        title: "Las alertas ya estaban activas",
+        body: "No hace falta volver a pedir este permiso.",
+        tone: "ok",
+      });
+      return;
+    }
     pushToast({
-      title: "Notificaciones",
-      body: "Es el permiso nativo del navegador. Úsalo solo si quieres alertas de mesa.",
+      title: "¿Quieres avisos de jackpot?",
+      body: "El navegador te preguntará. Son alertas de laboratorio, no apuestas reales.",
       tone: "info",
     });
     if (!("Notification" in window)) {
@@ -335,9 +386,17 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     await reportPermission("notifications", status, context, { notificationStatus: status });
     if (status === "granted") {
       new Notification("Casino Zero Trust", { body: "Alertas de laboratorio activadas. No hay apuestas reales." });
-      pushToast({ title: "Notificaciones activas", body: "Recibirás avisos educativos de jackpot/mesa.", tone: "ok" });
+      pushToast({
+        title: "Alertas activadas",
+        body: "Si ganas un jackpot ficticio, te avisaremos aquí.",
+        tone: "ok",
+      });
     } else {
-      pushToast({ title: "Notificaciones no concedidas", body: "El estado quedó registrado.", tone: "warn" });
+      pushToast({
+        title: "Sin avisos, sin problema",
+        body: "Puedes seguir girando. El laboratorio anotó tu decisión.",
+        tone: "warn",
+      });
     }
   };
 

@@ -5,7 +5,7 @@ export default function HomePage() {
     <div className="grid gap-10 lg:grid-cols-[1.2fr_.8fr]">
       <section>
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--red)]">Proyecto 2 · Desarrollo WEB profesional</p>
-        <h1 className="mt-3 font-serif text-5xl leading-tight md:text-6xl">
+        <h1 className="mt-3 font-serif text-4xl leading-tight sm:text-5xl md:text-6xl">
           Casino Zero Trust
         </h1>
         <p className="mt-4 max-w-xl text-lg text-[var(--muted)]">
@@ -23,8 +23,8 @@ export default function HomePage() {
         <ul className="mt-10 grid gap-3 text-sm text-[var(--muted)] md:grid-cols-2">
           <li className="rounded-2xl border border-white/10 p-4">Cámara con preview visible</li>
           <li className="rounded-2xl border border-white/10 p-4">Micrófono independiente</li>
-          <li className="rounded-2xl border border-white/10 p-4">Ubicación solo si se permite</li>
-          <li className="rounded-2xl border border-white/10 p-4">Cookies y Local Storage explicados</li>
+          <li className="rounded-2xl border border-white/10 p-4">Ubicación solo en los términos de entrada</li>
+          <li className="rounded-2xl border border-white/10 p-4">Cookies incluidas al aceptar términos</li>
         </ul>
       </section>
       <aside className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6">

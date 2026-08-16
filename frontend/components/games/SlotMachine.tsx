@@ -34,26 +34,26 @@ export function SlotMachine() {
       const win = next[0].id === next[1].id && next[1].id === next[2].id;
       if (win) {
         setCredits((c) => c + 40);
-        pushToast({ title: "Jackpot de laboratorio", body: "Tres iguales. Las fichas son ficticias.", tone: "ok" });
+        pushToast({ title: "¡Tres iguales!", body: "Jackpot de laboratorio. Las fichas son de mentira.", tone: "ok" });
         if (visitor?.notificationStatus === "granted") {
-          new Notification("Jackpot Zero Trust", { body: "Premio ficticio. Revisa qué permiso lo hizo posible." });
+          new Notification("Jackpot Zero Trust", { body: "Premio ficticio. Gracias por jugar en el laboratorio." });
         }
       }
     }, 1400);
   };
 
   return (
-    <div className="rounded-3xl border border-[var(--line)] bg-[#14110c] p-5">
-      <div className="flex items-end justify-between gap-4">
+    <div className="rounded-2xl border border-[var(--line)] bg-[#14110c] p-4 sm:rounded-3xl sm:p-5">
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gold)]">Tragamonedas</p>
-          <h2 className="font-serif text-3xl">Aurum Reels</h2>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--gold)]">Tragamonedas</p>
+          <h2 className="font-serif text-2xl sm:text-3xl">Aurum Reels</h2>
         </div>
         <p className="text-sm text-[var(--muted)]">Fichas: {credits}</p>
       </div>
-      <div className="mt-5 grid grid-cols-3 gap-3 overflow-hidden rounded-2xl border border-[var(--gold)]/30 bg-black p-3">
+      <div className="mt-4 grid grid-cols-3 gap-2 overflow-hidden rounded-2xl border border-[var(--gold)]/30 bg-black p-2 sm:mt-5 sm:gap-3 sm:p-3">
         {reels.map((symbol, i) => (
-          <div key={i} className="relative h-40 overflow-hidden rounded-xl bg-[#1b1812]">
+          <div key={i} className="relative h-28 overflow-hidden rounded-xl bg-[#1b1812] sm:h-40">
             <div
               className="absolute inset-x-0 top-0"
               style={{
@@ -66,12 +66,12 @@ export function SlotMachine() {
             >
               {spinning
                 ? strip.map((item, idx) => (
-                    <div key={idx} className="grid h-20 place-items-center font-serif text-4xl" style={{ color: item.color }}>
+                    <div key={idx} className="grid h-16 place-items-center font-serif text-3xl sm:h-20 sm:text-4xl" style={{ color: item.color }}>
                       {item.label}
                     </div>
                   ))
                 : (
-                    <div className="grid h-40 place-items-center font-serif text-6xl" style={{ color: symbol.color }}>
+                    <div className="grid h-28 place-items-center font-serif text-4xl sm:h-40 sm:text-6xl" style={{ color: symbol.color }}>
                       {symbol.label}
                     </div>
                   )}
@@ -79,12 +79,12 @@ export function SlotMachine() {
           </div>
         ))}
       </div>
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:flex-wrap sm:gap-3">
         <button
           type="button"
           onClick={spin}
           disabled={spinning}
-          className="rounded-xl bg-[var(--gold)] px-5 py-3 font-semibold text-black disabled:opacity-50"
+          className="min-h-12 rounded-xl bg-[var(--gold)] px-5 py-3 font-semibold text-black disabled:opacity-50"
         >
           Girar · 5 fichas
         </button>
@@ -93,13 +93,13 @@ export function SlotMachine() {
           onClick={() =>
             void requestNotifications("Alertas de jackpot en Aurum Reels. El navegador pedirá Notification.permission.")
           }
-          className="rounded-xl border border-white/15 px-5 py-3 text-sm"
+          className="min-h-12 rounded-xl border border-white/15 px-5 py-3 text-sm"
         >
-          Activar alertas de jackpot
+          {visitor?.notificationStatus === "granted" ? "Alertas ya activas" : "Activar avisos de jackpot"}
         </button>
       </div>
       <p className="mt-3 text-xs text-[var(--muted)]">
-        Las alertas usan la API oficial de notificaciones. Si aceptas, el admin verá `notifications: granted`.
+        Los avisos son opcionales y se piden una sola vez. Si ya los aceptaste, no vuelve a salir el diálogo.
       </p>
     </div>
   );

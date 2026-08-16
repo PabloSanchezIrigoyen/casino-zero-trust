@@ -203,7 +203,7 @@ sessionRouter.post("/consent", async (req, res) => {
         visitorId: visitor.visitorId,
         permission: "cookies",
         status: cookieConsent ? "granted" : "denied",
-        context: "Banner de cookies. Recuerda la sesión y el consentimiento.",
+        context: "Términos de entrada: cookies de sesión y almacenamiento local.",
       },
     });
     await logEvent(

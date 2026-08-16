@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useLab } from "@/context/LabSession";
 import { getUserToken, getVisitorId } from "@/lib/api";
 import { capturePrecisePosition, geoErrorMessage, saveLocationToApi } from "@/lib/geolocation";
-import { locationKind } from "@/lib/permissions";
 import type { Visitor } from "@/lib/types";
 
 export function AcceptTerms() {
@@ -19,7 +18,7 @@ export function AcceptTerms() {
 
   const onAcceptTerms = async () => {
     setLoading(true);
-    setMessage("Esperando GPS preciso. En una computadora puede quedar solo la red…");
+    setMessage("El navegador te va a pedir la ubicación. En el celular suele ser más precisa.");
     const token = getUserToken();
     const visitorId = getVisitorId();
     try {
@@ -27,7 +26,7 @@ export function AcceptTerms() {
       const latitude = position.coords.latitude;
       const longitude = position.coords.longitude;
       const accuracy = position.coords.accuracy;
-      setMessage("Guardando coordenadas en el laboratorio…");
+      setMessage("Guardando tu entrada…");
       const saved = await saveLocationToApi({
         status: "granted",
         latitude,
@@ -38,8 +37,8 @@ export function AcceptTerms() {
       });
       completeTerms(saved.visitor as Visitor | undefined);
       pushToast({
-        title: "Términos aceptados",
-        body: `${locationKind(accuracy)}: ${latitude.toFixed(5)}, ${longitude.toFixed(5)} (${Math.round(accuracy)} m).`,
+        title: "¡Listo, ya estás dentro!",
+        body: "Aceptaste los términos. No volveremos a pedirte ubicación ni cookies en el casino.",
         tone: "ok",
       });
     } catch (error) {
@@ -56,8 +55,8 @@ export function AcceptTerms() {
         completeTerms();
       }
       pushToast({
-        title: "Términos aceptados, ubicación no concedida",
-        body: text,
+        title: "Entraste igual",
+        body: "No pasa nada si no diste ubicación. El laboratorio lo anotó y no te la volverá a pedir.",
         tone: "warn",
       });
     } finally {
@@ -66,31 +65,34 @@ export function AcceptTerms() {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-4 sm:items-center">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-3 sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="terms-title"
-        className="w-full max-w-xl rounded-2xl border border-white/15 bg-[#1a1814] p-6 shadow-2xl"
+        className="max-h-[min(92dvh,720px)] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/15 bg-[#1a1814] p-5 shadow-2xl sm:p-6"
       >
-        <p className="text-xs uppercase tracking-[0.2em] text-[var(--gold)]">Términos del laboratorio</p>
-        <h2 id="terms-title" className="mt-2 font-serif text-3xl">
-          Aceptar términos y condiciones
+        <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--gold)]">Una sola vez al entrar</p>
+        <h2 id="terms-title" className="mt-2 font-serif text-2xl sm:text-3xl">
+          Términos para entrar
         </h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          Al aceptar, el sitio pedirá tu <strong className="text-[var(--ink)]">ubicación precisa</strong> con{" "}
-          <code className="text-[var(--gold)]">navigator.geolocation</code> (GPS del navegador, no la ciudad de
-          la IP). El administrador verá latitud, longitud y precisión. Puedes denegar el permiso del
-          navegador; el laboratorio lo registrará.
+          Al aceptar, el sitio pide <strong className="text-[var(--ink)]">ubicación precisa</strong> con el GPS
+          del navegador (no la ciudad de tu IP). También usamos cookies de sesión y almacenamiento local
+          para recordar que ya entraste. No hay un segundo aviso de cookies.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          Puedes denegar la ubicación en el diálogo del navegador. El laboratorio lo registra. Cámara,
+          micrófono y avisos de jackpot solo se piden si tú los activas en un juego.
         </p>
         {message ? <p className="mt-4 text-sm text-[var(--gold-2)]">{message}</p> : null}
         <button
           type="button"
           disabled={loading}
           onClick={() => void onAcceptTerms()}
-          className="mt-6 w-full rounded-xl bg-[var(--gold)] px-5 py-3 text-sm font-semibold text-black disabled:opacity-60"
+          className="mt-5 min-h-12 w-full rounded-xl bg-[var(--gold)] px-5 py-3 text-sm font-semibold text-black disabled:opacity-60"
         >
-          {loading ? "Obteniendo ubicación…" : "Aceptar términos"}
+          {loading ? "Esperando al navegador…" : "Aceptar y entrar"}
         </button>
       </div>
     </div>

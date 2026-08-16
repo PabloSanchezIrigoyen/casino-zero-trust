@@ -35,10 +35,10 @@ export function LabGate() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4">
-      <div className="w-full max-w-xl rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6 shadow-2xl">
-        <p className="text-xs uppercase tracking-[0.25em] text-[var(--red)]">Proyecto 2 · laboratorio</p>
-        <h2 className="mt-2 font-serif text-3xl">NO es un sitio malicioso</h2>
+    <div className="fixed inset-0 z-50 grid place-items-end bg-black/80 p-3 sm:place-items-center sm:p-4">
+      <div className="max-h-[min(92dvh,760px)] w-full max-w-xl overflow-y-auto rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5 shadow-2xl sm:p-6">
+        <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--red)]">Proyecto 2 · laboratorio</p>
+        <h2 className="mt-2 font-serif text-2xl sm:text-3xl">NO es un sitio malicioso</h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
           Laboratorio <strong className="text-[var(--ink)]">ético</strong>,{" "}
           <strong className="text-[var(--ink)]">controlado</strong> y{" "}
@@ -68,7 +68,7 @@ export function LabGate() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tucorreo@ejemplo.com"
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 outline-none focus:border-[var(--gold)]"
+            className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 outline-none focus:border-[var(--gold)]"
           />
         </label>
         <label className="mt-3 block text-sm">
@@ -78,7 +78,7 @@ export function LabGate() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Mínimo 8 caracteres"
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 outline-none focus:border-[var(--gold)]"
+            className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 outline-none focus:border-[var(--gold)]"
           />
         </label>
         {mode === "register" ? (
@@ -88,7 +88,7 @@ export function LabGate() {
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 outline-none focus:border-[var(--gold)]"
+              className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 outline-none focus:border-[var(--gold)]"
             />
           </label>
         ) : null}
@@ -97,7 +97,7 @@ export function LabGate() {
           type="button"
           disabled={loading}
           onClick={() => void submit()}
-          className="mt-5 w-full rounded-xl bg-[var(--gold)] px-4 py-3 font-semibold text-black disabled:opacity-60"
+          className="mt-5 min-h-12 w-full rounded-xl bg-[var(--gold)] px-4 py-3 font-semibold text-black disabled:opacity-60"
         >
           {loading ? "Entrando…" : mode === "register" ? "Crear cuenta y entrar" : "Iniciar sesión"}
         </button>
