@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { api, clearUserSession, getUserToken, persistUserSession } from "@/lib/api";
 import { collectSignals, publicIp } from "@/lib/device";
 import { collectTechProfile } from "@/lib/fingerprint";
+import { capturePrecisePosition } from "@/lib/geolocation";
 import { readBrowserPermissions, roundCoord } from "@/lib/permissions";
 import type { PermissionState, Toast, Visitor } from "@/lib/types";
 
@@ -295,37 +296,29 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   const requestLocation = async (context: string) => {
     pushToast({
       title: "Ubicación",
-      body: "Pide GPS preciso del teléfono. En iPhone: Ajustes → Safari → Ubicación → Precisión activada. No es una IP.",
+      body: "En celular pide GPS. En una computadora el navegador solo estima con la red.",
       tone: "info",
     });
-    if (!("geolocation" in navigator)) {
+    try {
+      const pos = await capturePrecisePosition();
+      await reportPermission("location", "granted", context, {
+        locationStatus: "granted",
+        locationLat: roundCoord(pos.coords.latitude),
+        locationLng: roundCoord(pos.coords.longitude),
+        locationAccuracy: pos.coords.accuracy,
+      });
+      pushToast({
+        title: "Ubicación autorizada",
+        body:
+          pos.coords.accuracy > 1000
+            ? "Se guardó una estimación de red. Esta computadora no tiene GPS."
+            : "Se guardó el GPS del dispositivo (metros).",
+        tone: "ok",
+      });
+    } catch {
       await reportPermission("location", "denied", context, { locationStatus: "denied" });
-      return;
+      pushToast({ title: "Ubicación denegada", body: "El casino no usará geolocalización.", tone: "warn" });
     }
-    await new Promise<void>((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          await reportPermission("location", "granted", context, {
-            locationStatus: "granted",
-            locationLat: roundCoord(pos.coords.latitude),
-            locationLng: roundCoord(pos.coords.longitude),
-            locationAccuracy: pos.coords.accuracy,
-          });
-          pushToast({
-            title: "Ubicación autorizada",
-            body: "Se guardó el GPS del dispositivo (metros), no la ciudad del proveedor de internet.",
-            tone: "ok",
-          });
-          resolve();
-        },
-        async () => {
-          await reportPermission("location", "denied", context, { locationStatus: "denied" });
-          pushToast({ title: "Ubicación denegada", body: "El casino no usará geolocalización.", tone: "warn" });
-          resolve();
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-      );
-    });
   };
 
   const requestNotifications = async (context: string) => {

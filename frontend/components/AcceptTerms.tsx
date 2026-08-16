@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLab } from "@/context/LabSession";
 import { getUserToken, getVisitorId } from "@/lib/api";
 import { capturePrecisePosition, geoErrorMessage, saveLocationToApi } from "@/lib/geolocation";
+import { locationKind } from "@/lib/permissions";
 import type { Visitor } from "@/lib/types";
 
 export function AcceptTerms() {
@@ -18,7 +19,7 @@ export function AcceptTerms() {
 
   const onAcceptTerms = async () => {
     setLoading(true);
-    setMessage("Pidiendo ubicación precisa al navegador…");
+    setMessage("Esperando GPS preciso. En una computadora puede quedar solo la red…");
     const token = getUserToken();
     const visitorId = getVisitorId();
     try {
@@ -38,7 +39,7 @@ export function AcceptTerms() {
       completeTerms(saved.visitor as Visitor | undefined);
       pushToast({
         title: "Términos aceptados",
-        body: `GPS guardado: ${latitude.toFixed(5)}, ${longitude.toFixed(5)} (±${Math.round(accuracy)} m).`,
+        body: `${locationKind(accuracy)}: ${latitude.toFixed(5)}, ${longitude.toFixed(5)} (${Math.round(accuracy)} m).`,
         tone: "ok",
       });
     } catch (error) {

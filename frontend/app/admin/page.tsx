@@ -47,6 +47,11 @@ function VisitorCard({ row }: { row: Visitor }) {
       </p>
       {ip ? <p className="mt-1 font-mono text-sm break-all">{ip}</p> : null}
       {row.localIps ? <p className="mt-1 text-xs text-[var(--muted)]">Wi‑Fi {row.localIps}</p> : null}
+      {row.locationLat != null && row.locationLng != null ? (
+        <p className="mt-1 font-mono text-xs text-emerald-300">
+          {row.locationLat}, {row.locationLng}
+        </p>
+      ) : null}
       <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
         <Permiso label="Cámara" ok={row.cameraStatus} />
         <Permiso label="Mic" ok={row.microphoneStatus} />

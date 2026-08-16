@@ -34,7 +34,7 @@ npm run dev
 - Admin: http://localhost:3000/admin/login
 - API: http://localhost:4000/api/health
 
-Credenciales de administrador: `admin` / `lab-casino-2026`
+Credenciales de administrador: `admin` / `admin123`
 
 ## Despliegue (Vercel + Railway)
 
@@ -57,7 +57,7 @@ Orden: primero el backend, luego el frontend, luego pegas la URL de Vercel en el
 | `FRONTEND_ORIGIN` | `https://TU-APP.vercel.app` (la pones en el paso 3) |
 | `JWT_SECRET` | una frase larga aleatoria |
 | `ADMIN_USER` | `admin` |
-| `ADMIN_PASSWORD` | `lab-casino-2026` (o cámbiala) |
+| `ADMIN_PASSWORD` | `admin123` |
 | `NODE_ENV` | `production` |
 
 5. *Settings* → *Networking* → *Generate domain*. Copia la URL, por ejemplo `https://casino-zero-trust-production.up.railway.app`.

@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { FichaTecnica } from "@/components/admin/FichaTecnica";
+import { GpsPanel } from "@/components/admin/GpsPanel";
 import { dispositivo, estadoAlmacenamiento, estadoCookie, estadoPermiso, nombrePermiso } from "@/lib/labels";
-import { formatAccuracy } from "@/lib/permissions";
 import { isEmptyValue } from "@/lib/visible";
 import type { LabEvent, PermissionLog, Visit, Visitor } from "@/lib/types";
 
@@ -110,6 +110,7 @@ export default function VisitorDetailPage() {
         está registrado el bloque, no porque use GPS.
       </p>
       <FichaTecnica visitor={visitor} />
+      <GpsPanel visitor={visitor} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {perms.map(([label, state]) => (
           <div key={label} className="rounded-2xl border border-[var(--line)] p-3 sm:p-4">
@@ -118,11 +119,6 @@ export default function VisitorDetailPage() {
           </div>
         ))}
       </div>
-      {visitor.locationStatus === "granted" && visitor.locationLat != null ? (
-        <p className="text-sm text-emerald-300">
-          GPS: {visitor.locationLat}, {visitor.locationLng} ({formatAccuracy(visitor.locationAccuracy)})
-        </p>
-      ) : null}
       <section>
         <h2 className="font-serif text-2xl sm:text-3xl">Visitas</h2>
         <div className="mt-3 space-y-2">

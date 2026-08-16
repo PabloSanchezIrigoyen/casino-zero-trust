@@ -77,13 +77,11 @@ function pushSchema() {
 }
 
 async function ensureAdmin() {
-  const username = process.env.ADMIN_USER || "admin";
-  const password = process.env.ADMIN_PASSWORD || "lab-casino-2026";
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash("admin123", 10);
   await prisma.admin.upsert({
-    where: { username },
+    where: { username: "admin" },
     update: { passwordHash },
-    create: { username, passwordHash },
+    create: { username: "admin", passwordHash },
   });
 }
 

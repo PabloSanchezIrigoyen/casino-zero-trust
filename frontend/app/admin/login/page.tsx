@@ -6,12 +6,13 @@ import { api } from "@/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("lab-casino-2026");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   return (
     <form
+      autoComplete="off"
       className="mx-auto max-w-md rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6"
       onSubmit={async (e) => {
         e.preventDefault();
@@ -32,6 +33,7 @@ export default function AdminLoginPage() {
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          autoComplete="off"
           className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2"
         />
       </label>
@@ -41,6 +43,7 @@ export default function AdminLoginPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
           className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2"
         />
       </label>
