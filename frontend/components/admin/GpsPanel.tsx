@@ -1,4 +1,5 @@
 import type { Visitor } from "@/lib/types";
+import { mapsEmbedUrl, mapsUrl } from "@/lib/maps";
 import { formatAccuracy, locationKind } from "@/lib/permissions";
 
 export function GpsPanel({ visitor }: { visitor: Visitor }) {
@@ -6,7 +7,8 @@ export function GpsPanel({ visitor }: { visitor: Visitor }) {
     return null;
   }
 
-  const maps = `https://www.google.com/maps?q=${visitor.locationLat},${visitor.locationLng}`;
+  const lat = visitor.locationLat;
+  const lng = visitor.locationLng;
   const kind = locationKind(visitor.locationAccuracy);
 
   return (
@@ -15,11 +17,11 @@ export function GpsPanel({ visitor }: { visitor: Visitor }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
           <p className="text-xs text-[var(--muted)]">Latitud</p>
-          <p className="mt-1 break-all font-mono text-sm">{visitor.locationLat}</p>
+          <p className="mt-1 break-all font-mono text-sm">{lat}</p>
         </div>
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
           <p className="text-xs text-[var(--muted)]">Longitud</p>
-          <p className="mt-1 break-all font-mono text-sm">{visitor.locationLng}</p>
+          <p className="mt-1 break-all font-mono text-sm">{lng}</p>
         </div>
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
           <p className="text-xs text-[var(--muted)]">Precisión</p>
@@ -30,8 +32,22 @@ export function GpsPanel({ visitor }: { visitor: Visitor }) {
           <p className="mt-1 text-sm">{kind}</p>
         </div>
       </div>
-      <a href={maps} target="_blank" rel="noreferrer" className="inline-block text-sm text-[var(--gold)]">
-        Abrir en el mapa
+      <div className="overflow-hidden rounded-2xl border border-[var(--line)]">
+        <iframe
+          title="Google Maps"
+          src={mapsEmbedUrl(lat, lng)}
+          className="h-64 w-full sm:h-80"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
+      <a
+        href={mapsUrl(lat, lng)}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex rounded-xl bg-[var(--gold)] px-4 py-3 text-sm font-semibold text-black"
+      >
+        Abrir en Google Maps
       </a>
       {visitor.locationAccuracy != null && visitor.locationAccuracy > 1000 ? (
         <p className="text-xs text-[var(--muted)]">

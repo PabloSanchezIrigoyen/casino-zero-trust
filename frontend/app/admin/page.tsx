@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { dispositivo, enLinea, estadoCookie, estadoPermiso } from "@/lib/labels";
+import { mapsUrl } from "@/lib/maps";
 import type { LabEvent, Visitor } from "@/lib/types";
 
 type Stats = {
@@ -30,38 +31,48 @@ function Permiso({ ok, label }: { ok: string | boolean; label: string }) {
 
 function VisitorCard({ row }: { row: Visitor }) {
   const ip = row.publicIpv4 || row.publicIp || row.lastIp;
+  const hasGps = row.locationLat != null && row.locationLng != null;
   return (
-    <Link
-      href={`/admin/visitors/${row.visitorId}`}
-      className="block rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 break-all font-medium text-[var(--gold)]">{row.email}</p>
-        <span className={`shrink-0 text-[11px] ${enLinea(row) ? "text-emerald-300" : "text-[var(--muted)]"}`}>
-          {enLinea(row) ? "en línea" : "fuera"}
-        </span>
-      </div>
-      <p className="mt-2 text-sm">
-        {dispositivo(row.deviceType)}
-        {row.browser ? ` · ${row.browser}` : ""}
-      </p>
-      {ip ? <p className="mt-1 font-mono text-sm break-all">{ip}</p> : null}
-      {row.localIps ? <p className="mt-1 text-xs text-[var(--muted)]">Wi‑Fi {row.localIps}</p> : null}
-      {row.locationLat != null && row.locationLng != null ? (
-        <p className="mt-1 font-mono text-xs text-emerald-300">
-          {row.locationLat}, {row.locationLng}
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
+      <Link href={`/admin/visitors/${row.visitorId}`} className="block">
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 break-all font-medium text-[var(--gold)]">{row.email}</p>
+          <span className={`shrink-0 text-[11px] ${enLinea(row) ? "text-emerald-300" : "text-[var(--muted)]"}`}>
+            {enLinea(row) ? "en línea" : "fuera"}
+          </span>
+        </div>
+        <p className="mt-2 text-sm">
+          {dispositivo(row.deviceType)}
+          {row.browser ? ` · ${row.browser}` : ""}
         </p>
+        {ip ? <p className="mt-1 font-mono text-sm break-all">{ip}</p> : null}
+        {row.localIps ? <p className="mt-1 text-xs text-[var(--muted)]">Wi‑Fi {row.localIps}</p> : null}
+        {hasGps ? (
+          <p className="mt-1 font-mono text-xs text-emerald-300">
+            {row.locationLat}, {row.locationLng}
+          </p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
+          <Permiso label="Cámara" ok={row.cameraStatus} />
+          <Permiso label="Mic" ok={row.microphoneStatus} />
+          <Permiso label="GPS" ok={row.locationStatus} />
+          <Permiso label="Cookies" ok={estadoCookie(row.cookieConsent, row.cookieConsentAt)} />
+        </div>
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          {row.visitCount} visitas · {new Date(row.lastSeenAt).toLocaleString("es-MX")}
+        </p>
+      </Link>
+      {hasGps ? (
+        <a
+          href={mapsUrl(row.locationLat as number, row.locationLng as number)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex rounded-xl bg-[var(--gold)] px-3 py-2 text-xs font-semibold text-black"
+        >
+          Ver en Google Maps
+        </a>
       ) : null}
-      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
-        <Permiso label="Cámara" ok={row.cameraStatus} />
-        <Permiso label="Mic" ok={row.microphoneStatus} />
-        <Permiso label="GPS" ok={row.locationStatus} />
-        <Permiso label="Cookies" ok={estadoCookie(row.cookieConsent, row.cookieConsentAt)} />
-      </div>
-      <p className="mt-3 text-xs text-[var(--muted)]">
-        {row.visitCount} visitas · {new Date(row.lastSeenAt).toLocaleString("es-MX")}
-      </p>
-    </Link>
+    </div>
   );
 }
 
