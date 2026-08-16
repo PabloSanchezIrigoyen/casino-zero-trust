@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Visitor {
+  id                 String    @id @default(cuid())
+  visitorId          String    @unique
+  email              String    @unique
+  passwordHash       String
+  firstSeenAt        DateTime  @default(now())
+  lastSeenAt         DateTime  @updatedAt
+  visitCount         Int       @default(0)
+  lastIp             String?
+  publicIp           String?
+  lastUserAgent      String?   @db.Text
+  deviceType         String?
+  deviceOs           String?
+  browser            String?
+  screenWidth        Int?
+  screenHeight       Int?
+  language           String?
+  timezone           String?
+  cookieConsent      Boolean   @default(false)
+  cookieConsentAt    DateTime?
+  localStorageOk     Boolean   @default(false)
+  cameraStatus       String    @default("prompt")
+  microphoneStatus   String    @default("prompt")
+  locationStatus     String    @default("prompt")
+  notificationStatus String    @default("prompt")
+  locationLat        Float?
+  locationLng        Float?
+  locationAccuracy   Float?
+  publicIpv4         String?
+  publicIpv6         String?
+  localIps           String?   @db.Text
+  gpuVendor          String?   @db.Text
+  gpuRenderer        String?   @db.Text
+  deviceModel        String?   @db.Text
+  osVersion          String?
+  architecture       String?
+  cpuCores           Int?
+  deviceMemoryGb     Float?
+  browserVersion     String?   @db.Text
+  connectionType     String?
+  techProfile        Json?
+  visits             Visit[]
+  events             Event[]
+  permissions        PermissionLog[]
+
+  @@index([lastSeenAt])
+  @@index([deviceType])
+}
+
+model Visit {
+  id         String    @id @default(cuid())
+  visitor    Visitor   @relation(fields: [visitorId], references: [visitorId], onDelete: Cascade)
+  visitorId  String
+  startedAt  DateTime  @default(now())
+  lastBeatAt DateTime  @default(now())
+  endedAt    DateTime?
+  ip         String?
+  publicIp   String?
+  userAgent  String?   @db.Text
+  deviceType String?
+  referrer   String?
+  path       String?
+  publicIpv4 String?
+  publicIpv6 String?
+  localIps   String?  @db.Text
+  techProfile Json?
+
+  @@index([visitorId])
+  @@index([startedAt])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  visitor   Visitor  @relation(fields: [visitorId], references: [visitorId], onDelete: Cascade)
+  visitorId String
+  visitId   String?
+  type      String
+  message   String   @db.Text
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  @@index([visitorId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model PermissionLog {
+  id         String   @id @default(cuid())
+  visitor    Visitor  @relation(fields: [visitorId], references: [visitorId], onDelete: Cascade)
+  visitorId  String
+  permission String
+  status     String
+  context    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([visitorId])
+  @@index([permission])
+}
+
+model Admin {
+  id           String @id @default(cuid())
+  username     String @unique
+  passwordHash String
+}

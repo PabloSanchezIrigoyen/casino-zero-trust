@@ -1,0 +1,16 @@
+{
+  "name": "casino-zero-trust",
+  "private": true,
+  "description": "Laboratorio ético WEB de privacidad, permisos y ciberseguridad",
+  "scripts": {
+    "dev": "concurrently -n back,front -c cyan,magenta \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "db:push": "npm run db:push --prefix backend",
+    "db:seed": "npm run db:seed --prefix backend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
