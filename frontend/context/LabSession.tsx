@@ -165,20 +165,23 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
 
   const setCookieChoice = async (accepted: boolean) => {
     try {
-      const body = { ...(await payload()), cookieConsent: accepted };
+      const body = { ...(await payload()), cookieConsent: accepted, localStorageOk: accepted };
       const data = (await api.consent(body)) as { visitor: Visitor };
       setCookieChoiceState(accepted);
+      setStorageChoice(accepted);
+      setLocalOk(accepted);
       localStorage.setItem("zt_cookies", accepted ? "1" : "0");
+      localStorage.setItem("zt_storage", accepted ? "1" : "0");
       setVisitor(data.visitor);
       persistUserSession(getUserToken(), data.visitor.visitorId, {
         cookies: accepted,
-        localStorage: localStorageOk,
+        localStorage: accepted,
       });
       pushToast({
-        title: accepted ? "Cookies aceptadas" : "Cookies rechazadas",
+        title: accepted ? "Cookies y almacenamiento aceptados" : "Cookies y almacenamiento rechazados",
         body: accepted
-          ? "Se guardó el consentimiento y se creó la cookie de sesión en este sitio."
-          : "No se guardó ninguna cookie de este laboratorio.",
+          ? "Se guardó el consentimiento: cookie de sesión y datos en este navegador (localStorage)."
+          : "No se guardó cookie ni datos en el disco de este navegador.",
         tone: accepted ? "ok" : "warn",
       });
     } catch (error) {

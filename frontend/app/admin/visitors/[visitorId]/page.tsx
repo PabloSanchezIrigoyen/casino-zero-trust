@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { FichaTecnica } from "@/components/admin/FichaTecnica";
-import { dispositivo, estadoCookie, estadoPermiso, nombrePermiso } from "@/lib/labels";
+import { dispositivo, estadoAlmacenamiento, estadoCookie, estadoPermiso, nombrePermiso } from "@/lib/labels";
 import { formatAccuracy } from "@/lib/permissions";
 import { isEmptyValue } from "@/lib/visible";
 import type { LabEvent, PermissionLog, Visit, Visitor } from "@/lib/types";
@@ -61,7 +61,7 @@ export default function VisitorDetailPage() {
 
   const perms = [
     ["Cookies", estadoCookie(visitor.cookieConsent, visitor.cookieConsentAt)],
-    ["Almacenamiento", visitor.localStorageOk ? "granted" : "prompt"],
+    ["Almacenamiento", estadoAlmacenamiento(visitor)],
     ["Cámara", visitor.cameraStatus],
     ["Micrófono", visitor.microphoneStatus],
     ["Ubicación", visitor.locationStatus],

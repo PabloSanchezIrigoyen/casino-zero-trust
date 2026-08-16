@@ -1,7 +1,7 @@
 "use client";
 
 import { useLab } from "@/context/LabSession";
-import { estadoPermiso } from "@/lib/labels";
+import { estadoAlmacenamiento, estadoPermiso } from "@/lib/labels";
 
 function Chip({ label, state }: { label: string; state: string }) {
   const color =
@@ -27,7 +27,7 @@ export function PermissionHud() {
       <Chip label="Ubicación" state={visitor.locationStatus} />
       <Chip label="Avisos" state={visitor.notificationStatus} />
       <Chip label="Cookies" state={visitor.cookieConsent ? "granted" : visitor.cookieConsentAt ? "denied" : "prompt"} />
-      <Chip label="Almacenamiento" state={visitor.localStorageOk ? "granted" : "prompt"} />
+      <Chip label="Almacenamiento" state={estadoAlmacenamiento(visitor)} />
     </div>
   );
 }

@@ -30,6 +30,16 @@ export function estadoCookie(consent: boolean, decidedAt?: string | null) {
   return "prompt";
 }
 
+export function estadoAlmacenamiento(visitor: {
+  localStorageOk: boolean;
+  cookieConsent: boolean;
+  cookieConsentAt: string | null;
+}) {
+  if (visitor.localStorageOk || visitor.cookieConsent) return "granted";
+  if (visitor.cookieConsentAt) return "denied";
+  return "prompt";
+}
+
 export function enLinea(visitor: { enLinea?: boolean; lastSeenAt?: string }) {
   if (typeof visitor.enLinea === "boolean") return visitor.enLinea;
   return false;

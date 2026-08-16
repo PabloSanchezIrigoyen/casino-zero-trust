@@ -23,9 +23,9 @@ export function ConsentBar() {
           Este sitio usa cookies
         </h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          Usamos cookies de sesión para recordar que entraste al laboratorio y guardar tu
-          consentimiento. No son de publicidad. Puedes aceptar o rechazar; el administrador verá tu
-          decisión.
+          Usamos cookies de sesión y, si aceptas, también localStorage: guardar en este
+          navegador que ya entraste (no es un permiso nativo como cámara o GPS). No es
+          publicidad. El administrador verá tu decisión.
         </p>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
