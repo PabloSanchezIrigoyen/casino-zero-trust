@@ -9,7 +9,7 @@ function mysqlFromParts() {
   return `mysql://${user}:${pass}@${host}:${port}/${db}`;
 }
 
-function isPlaceholder(url) {
+function isPlaceholder(url: string | undefined) {
   if (!url) return true;
   return /@127\.0\.0\.1:3306\/build\b/.test(url) || url.startsWith("mysql://build:build@");
 }
