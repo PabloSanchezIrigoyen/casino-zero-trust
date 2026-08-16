@@ -25,5 +25,13 @@ export async function readBrowserPermissions() {
 }
 
 export function roundCoord(value: number) {
-  return Math.round(value * 1000) / 1000;
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+export function formatAccuracy(meters: number | null | undefined) {
+  if (meters == null || Number.isNaN(meters)) return "sin dato";
+  if (meters >= 1000) {
+    return `±${(meters / 1000).toFixed(1)} km (aproximada, típica sin GPS preciso)`;
+  }
+  return `±${Math.round(meters)} m (GPS del teléfono)`;
 }

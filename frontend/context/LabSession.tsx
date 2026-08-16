@@ -260,7 +260,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   const requestLocation = async (context: string) => {
     pushToast({
       title: "Ubicación",
-      body: "Solo si confirmas. Guardamos coordenadas redondeadas, no una dirección exacta.",
+      body: "Pide GPS preciso del teléfono. En iPhone: Ajustes → Safari → Ubicación → Precisión activada. No es una IP.",
       tone: "info",
     });
     if (!("geolocation" in navigator)) {
@@ -278,7 +278,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
           });
           pushToast({
             title: "Ubicación autorizada",
-            body: "Se guardó una posición aproximada para el jackpot regional de laboratorio.",
+            body: "Se guardó el GPS del dispositivo (metros), no la ciudad del proveedor de internet.",
             tone: "ok",
           });
           resolve();
@@ -288,7 +288,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
           pushToast({ title: "Ubicación denegada", body: "El casino no usará geolocalización.", tone: "warn" });
           resolve();
         },
-        { enableHighAccuracy: false, timeout: 8000 },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
       );
     });
   };

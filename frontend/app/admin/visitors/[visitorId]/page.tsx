@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { FichaTecnica } from "@/components/admin/FichaTecnica";
 import { dispositivo, estadoCookie, estadoPermiso, nombrePermiso } from "@/lib/labels";
+import { formatAccuracy } from "@/lib/permissions";
 import type { LabEvent, PermissionLog, Visit, Visitor } from "@/lib/types";
 
 type Detail = Visitor & { visits: Visit[]; events: LabEvent[]; permissions: PermissionLog[] };
@@ -118,7 +119,7 @@ export default function VisitorDetailPage() {
       </div>
       {visitor.locationStatus === "granted" ? (
         <p className="text-sm text-emerald-300">
-          Ubicación aproximada: {visitor.locationLat}, {visitor.locationLng} (±{visitor.locationAccuracy} m)
+          Ubicación GPS: {visitor.locationLat}, {visitor.locationLng} ({formatAccuracy(visitor.locationAccuracy)})
         </p>
       ) : null}
       <section>

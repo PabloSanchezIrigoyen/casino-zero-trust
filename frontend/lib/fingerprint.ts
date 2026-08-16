@@ -80,17 +80,21 @@ async function publicIps() {
   return { ipv4: v4, ipv6: v6 && v6 !== v4 ? v6 : "" };
 }
 
-function localIps(): Promise<string[]> {
+function localIps(): Promise<{ locales: string[]; stun: string[]; detalle: string[] }> {
   return new Promise((resolve) => {
-    const found = new Set<string>();
-    const finish = () => resolve([...found]);
+    const locales = new Set<string>();
+    const stun = new Set<string>();
+    const detalle: string[] = [];
+    const finish = () => resolve({ locales: [...locales], stun: [...stun], detalle });
     try {
-      const pc = new RTCPeerConnection({ iceServers: [] });
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
+      });
       pc.createDataChannel("zt");
       const timer = window.setTimeout(() => {
         pc.close();
         finish();
-      }, 1200);
+      }, 3500);
       pc.onicecandidate = (event) => {
         if (!event.candidate) {
           window.clearTimeout(timer);
@@ -99,10 +103,14 @@ function localIps(): Promise<string[]> {
           return;
         }
         const text = event.candidate.candidate || "";
-        const v4 = text.match(/\b(\d{1,3}(?:\.\d{1,3}){3})\b/);
-        const v6 = text.match(/\b([a-f0-9:]{2,}:[a-f0-9:]+)\b/i);
-        if (v4) found.add(v4[1]);
-        if (v6) found.add(v6[1]);
+        const parsed = text.match(/([0-9a-f:.]+)\s+(\d+)\s+typ\s+(\w+)/i);
+        if (!parsed) return;
+        const [, ip, port, typ] = parsed;
+        if (!ip || ip.endsWith(".local") || ip === "0.0.0.0" || ip.startsWith("127.")) return;
+        const linea = `${ip}:${port} (${typ})`;
+        if (!detalle.includes(linea)) detalle.push(linea);
+        if (typ === "host") locales.add(ip);
+        if (typ === "srflx" || typ === "prflx") stun.add(`${ip}:${port}`);
       };
       void pc.createOffer().then((offer) => pc.setLocalDescription(offer));
     } catch {
@@ -134,7 +142,7 @@ async function mediaInfo() {
 }
 
 export async function collectTechProfile(): Promise<TechProfile> {
-  const [hints, ips, locales, medios] = await Promise.all([
+  const [hints, ips, ice, medios] = await Promise.all([
     clientHints(),
     publicIps(),
     localIps(),
@@ -186,7 +194,11 @@ export async function collectTechProfile(): Promise<TechProfile> {
     red: {
       ipv4Publica: ips.ipv4,
       ipv6Publica: ips.ipv6,
-      ipsLocalesWebRTC: locales,
+      ipsLocalesWebRTC: ice.locales,
+      ipsStunPublicas: ice.stun,
+      iceCandidatos: ice.detalle,
+      notaIp:
+        "La IPv4 pública es la más precisa que un sitio puede ver en internet. La local es la de tu Wi‑Fi. No hay una IP oculta más específica detrás de la del ISP.",
       conexion: conn?.effectiveType || "desconocida",
       bajadaMbps: conn?.downlink ?? null,
       latenciaMs: conn?.rtt ?? null,

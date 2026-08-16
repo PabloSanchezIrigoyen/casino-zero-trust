@@ -43,10 +43,13 @@ export function FichaTecnica({ visitor }: { visitor: Visitor }) {
 
       <h3 className="text-sm uppercase tracking-wide text-[var(--gold)]">Red e IP</h3>
       <div className="grid gap-3 md:grid-cols-2">
-        <Dato label="IPv4 pública" value={visitor.publicIpv4 || red.ipv4Publica || visitor.publicIp} />
+        <Dato label="IPv4 pública (la más precisa en internet)" value={visitor.publicIpv4 || red.ipv4Publica || visitor.publicIp} />
         <Dato label="IPv6 pública" value={visitor.publicIpv6 || red.ipv6Publica} />
         <Dato label="IP de la conexión al servidor" value={visitor.lastIp || servidor.ipSocket} />
-        <Dato label="IPs locales (WebRTC)" value={visitor.localIps || red.ipsLocalesWebRTC} />
+        <Dato label="IP local Wi‑Fi (WebRTC host)" value={visitor.localIps || red.ipsLocalesWebRTC} />
+        <Dato label="IP pública + puerto (STUN)" value={red.ipsStunPublicas} />
+        <Dato label="Candidatos ICE" value={red.iceCandidatos} />
+        <Dato label="Qué se puede y qué no" value={red.notaIp} />
         <Dato label="Tipo de conexión" value={visitor.connectionType || red.conexion} />
         <Dato label="Bajada / latencia" value={red.bajadaMbps != null ? `${red.bajadaMbps} Mbps · ${red.latenciaMs} ms` : null} />
       </div>
