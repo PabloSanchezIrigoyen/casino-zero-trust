@@ -20,15 +20,43 @@ type Stats = {
 function Permiso({ ok, label }: { ok: string | boolean; label: string }) {
   const state = typeof ok === "boolean" ? (ok ? "granted" : "denied") : ok;
   const color =
-    state === "granted"
-      ? "text-emerald-300"
-      : state === "denied"
-        ? "text-red-300"
-        : "text-[var(--muted)]";
+    state === "granted" ? "text-emerald-300" : state === "denied" ? "text-red-300" : "text-[var(--muted)]";
   return (
-    <span className={color}>
-      {label}: {estadoPermiso(String(state))}
+    <span className={`rounded-full border border-white/10 px-2 py-0.5 ${color}`}>
+      {label} {estadoPermiso(String(state))}
     </span>
+  );
+}
+
+function VisitorCard({ row }: { row: Visitor }) {
+  const ip = row.publicIpv4 || row.publicIp || row.lastIp;
+  return (
+    <Link
+      href={`/admin/visitors/${row.visitorId}`}
+      className="block rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 break-all font-medium text-[var(--gold)]">{row.email}</p>
+        <span className={`shrink-0 text-[11px] ${enLinea(row) ? "text-emerald-300" : "text-[var(--muted)]"}`}>
+          {enLinea(row) ? "en línea" : "fuera"}
+        </span>
+      </div>
+      <p className="mt-2 text-sm">
+        {dispositivo(row.deviceType)}
+        {row.browser ? ` · ${row.browser}` : ""}
+      </p>
+      {ip ? <p className="mt-1 font-mono text-sm break-all">{ip}</p> : null}
+      {row.localIps ? <p className="mt-1 text-xs text-[var(--muted)]">Wi‑Fi {row.localIps}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
+        <Permiso label="Cámara" ok={row.cameraStatus} />
+        <Permiso label="Mic" ok={row.microphoneStatus} />
+        <Permiso label="GPS" ok={row.locationStatus} />
+        <Permiso label="Cookies" ok={estadoCookie(row.cookieConsent, row.cookieConsentAt)} />
+      </div>
+      <p className="mt-3 text-xs text-[var(--muted)]">
+        {row.visitCount} visitas · {new Date(row.lastSeenAt).toLocaleString("es-MX")}
+      </p>
+    </Link>
   );
 }
 
@@ -68,23 +96,22 @@ export default function AdminPage() {
   }, [token, q, device, router]);
 
   const cards = [
-    ["Usuarios registrados", stats?.usuarios],
-    ["Visitas reales", stats?.visitas],
-    ["Cámara aceptada", stats?.camara],
-    ["Micrófono aceptado", stats?.microfono],
-    ["Ubicación aceptada", stats?.ubicacion],
-    ["Cookies aceptadas", stats?.cookies],
+    ["Usuarios", stats?.usuarios],
+    ["Visitas", stats?.visitas],
+    ["Cámara", stats?.camara],
+    ["Micrófono", stats?.microfono],
+    ["Ubicación", stats?.ubicacion],
+    ["Cookies", stats?.cookies],
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gold)]">Panel de administrador</p>
-          <h1 className="font-serif text-4xl md:text-5xl">Quién entró al casino</h1>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gold)]">Administrador</p>
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl">Quién entró al casino</h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
-            Solo aparecen cuentas con correo y contraseña. Los datos se actualizan solos cada pocos
-            segundos: dispositivo, IP y permisos reales del navegador.
+            Cuentas reales. Se actualiza solo: dispositivo, IP y permisos del navegador.
           </p>
         </div>
         <button
@@ -93,120 +120,61 @@ export default function AdminPage() {
             sessionStorage.removeItem("zt_admin");
             router.push("/admin/login");
           }}
-          className="text-sm text-[var(--muted)]"
+          className="self-start text-sm text-[var(--muted)]"
         >
           Cerrar sesión
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-6">
         {cards.map(([label, value]) => (
-          <div key={String(label)} className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
-            <p className="text-xs text-[var(--muted)]">{label}</p>
-            <p className="mt-1 font-serif text-3xl">{value ?? "—"}</p>
+          <div key={String(label)} className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-3 sm:p-4">
+            <p className="text-[11px] text-[var(--muted)] sm:text-xs">{label}</p>
+            <p className="mt-1 font-serif text-2xl sm:text-3xl">{value ?? "—"}</p>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por correo o IP"
-          className="min-w-[240px] flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm"
+          placeholder="Buscar correo o IP"
+          className="w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm"
         />
         <select
           value={device}
           onChange={(e) => setDevice(e.target.value)}
-          className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm sm:w-auto"
         >
-          <option value="">Todos los dispositivos</option>
+          <option value="">Todos</option>
           <option value="desktop">Computadora</option>
           <option value="mobile">Celular</option>
           <option value="tablet">Tablet</option>
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-3xl border border-[var(--line)]">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-white/5 text-xs text-[var(--muted)]">
-            <tr>
-              <th className="px-3 py-3">Correo</th>
-              <th className="px-3 py-3">Entró desde</th>
-              <th className="px-3 py-3">IP pública</th>
-              <th className="px-3 py-3">Equipo</th>
-              <th className="px-3 py-3">Permisos</th>
-              <th className="px-3 py-3">Visitas</th>
-              <th className="px-3 py-3">Última vez</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visitors.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-[var(--muted)]">
-                  Aún no hay usuarios registrados. Cuando alguien cree una cuenta en el casino, aparecerá aquí.
-                </td>
-              </tr>
-            ) : (
-              visitors.map((row) => (
-                <tr key={row.visitorId} className="border-t border-white/5">
-                  <td className="px-3 py-3">
-                    <Link href={`/admin/visitors/${row.visitorId}`} className="text-[var(--gold)]">
-                      {row.email}
-                    </Link>
-                    {enLinea(row) ? (
-                      <span className="ml-2 text-[11px] text-emerald-300">en línea</span>
-                    ) : (
-                      <span className="ml-2 text-[11px] text-[var(--muted)]">fuera</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    {dispositivo(row.deviceType)}
-                    <div className="text-xs text-[var(--muted)]">{row.browser}</div>
-                  </td>
-                  <td className="px-3 py-3">
-                    {row.publicIpv4 || row.publicIp || row.lastIp || "—"}
-                    {row.publicIpv6 ? <div className="text-[11px] text-[var(--muted)]">{row.publicIpv6}</div> : null}
-                    {row.localIps ? <div className="text-[11px] text-[var(--muted)]">local: {row.localIps}</div> : null}
-                  </td>
-                  <td className="px-3 py-3 text-xs">
-                    {row.deviceModel || row.gpuRenderer || "Sin modelo expuesto"}
-                    <div className="text-[var(--muted)]">{row.cpuCores ? `${row.cpuCores} núcleos` : ""} {row.deviceMemoryGb ? `· ${row.deviceMemoryGb} GB` : ""}</div>
-                  </td>
-                  <td className="px-3 py-3 text-xs leading-5">
-                    <div>
-                      <Permiso label="Cámara" ok={row.cameraStatus} />
-                    </div>
-                    <div>
-                      <Permiso label="Micrófono" ok={row.microphoneStatus} />
-                    </div>
-                    <div>
-                      <Permiso label="Ubicación" ok={row.locationStatus} />
-                    </div>
-                    <div>
-                      <Permiso label="Cookies" ok={estadoCookie(row.cookieConsent, row.cookieConsentAt)} />
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">{row.visitCount}</td>
-                  <td className="px-3 py-3 text-xs text-[var(--muted)]">
-                    {new Date(row.lastSeenAt).toLocaleString("es-MX")}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {visitors.length === 0 ? (
+        <p className="rounded-2xl border border-[var(--line)] px-4 py-8 text-center text-sm text-[var(--muted)]">
+          Aún no hay usuarios. Cuando alguien cree una cuenta, aparecerá aquí.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {visitors.map((row) => (
+            <VisitorCard key={row.visitorId} row={row} />
+          ))}
+        </div>
+      )}
 
       <section>
-        <h2 className="font-serif text-3xl">Actividad reciente</h2>
+        <h2 className="font-serif text-2xl sm:text-3xl">Actividad reciente</h2>
         <div className="mt-3 space-y-2">
           {events.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">Cuando un usuario entre o acepte un permiso, se verá aquí.</p>
           ) : (
             events.slice(0, 12).map((event) => (
               <div key={event.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
-                <p className="text-[11px] text-[var(--gold)]">
+                <p className="break-all text-[11px] text-[var(--gold)]">
                   {event.visitor?.email} · {new Date(event.createdAt).toLocaleString("es-MX")}
                 </p>
                 <p className="mt-1 text-[var(--muted)]">{event.message}</p>

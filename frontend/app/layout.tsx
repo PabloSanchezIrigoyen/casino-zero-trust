@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LabGate />
           <Toasts />
           <ConsentBar />
-          <main className="mx-auto min-h-[calc(100vh-80px)] max-w-6xl px-4 py-8">{children}</main>
+          <main className="mx-auto min-h-[calc(100vh-80px)] max-w-6xl px-3 py-5 sm:px-4 sm:py-8">{children}</main>
         </LabSessionProvider>
       </body>
     </html>

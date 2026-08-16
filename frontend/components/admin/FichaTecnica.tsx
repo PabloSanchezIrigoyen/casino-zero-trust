@@ -1,20 +1,24 @@
+import { Children, type ReactNode } from "react";
 import type { Visitor } from "@/lib/types";
-
-function texto(value: unknown) {
-  if (value == null || value === "" || (Array.isArray(value) && value.length === 0)) {
-    return { empty: true, text: "El navegador no lo expone" };
-  }
-  if (Array.isArray(value)) return { empty: false, text: value.join(", ") };
-  if (typeof value === "object") return { empty: false, text: JSON.stringify(value) };
-  return { empty: false, text: String(value) };
-}
+import { formatShown, isEmptyValue } from "@/lib/visible";
 
 function Dato({ label, value }: { label: string; value: unknown }) {
-  const shown = texto(value);
+  if (isEmptyValue(value)) return null;
   return (
     <div className="rounded-xl border border-white/10 p-3">
       <p className="text-xs text-[var(--muted)]">{label}</p>
-      <p className={`mt-1 break-all text-sm ${shown.empty ? "text-[var(--muted)]" : ""}`}>{shown.text}</p>
+      <p className="mt-1 break-all text-sm">{formatShown(value)}</p>
+    </div>
+  );
+}
+
+function Bloque({ title, children }: { title: string; children: ReactNode }) {
+  const items = Children.toArray(children).filter(Boolean);
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs uppercase tracking-wide text-[var(--gold)]">{title}</h3>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{items}</div>
     </div>
   );
 }
@@ -29,64 +33,63 @@ export function FichaTecnica({ visitor }: { visitor: Visitor }) {
   const pantalla = (profile.pantalla || {}) as Record<string, unknown>;
   const medios = (profile.medios || {}) as Record<string, unknown>;
   const servidor = (profile.servidor || {}) as Record<string, unknown>;
+  const sistemaTxt = [visitor.deviceOs, visitor.osVersion || sistema.osVersion].filter(Boolean).join(" ");
+  const pantallaFisica = pantalla.pantalla || (visitor.screenWidth ? `${visitor.screenWidth}×${visitor.screenHeight}` : null);
+  const redBajada =
+    red.bajadaMbps != null && red.latenciaMs != null ? `${red.bajadaMbps} Mbps · ${red.latenciaMs} ms` : red.bajadaMbps != null ? `${red.bajadaMbps} Mbps` : null;
+  const gpuTxt = visitor.gpuRenderer || gpu.renderizador;
+  const gpuVendor = visitor.gpuVendor || gpu.proveedor;
+  const etiquetas = Array.isArray(medios.etiquetas) ? medios.etiquetas.filter(Boolean) : medios.etiquetas;
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div>
-        <h2 className="font-serif text-3xl">Ficha técnica real</h2>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">
-          Un sitio web no puede leer la etiqueta HP/Dell de una laptop con Windows. En celular Android
-          a veces sí sale el modelo. En PC lo más preciso suele ser la GPU, el sistema, las IPs y el
-          nombre de la cámara/micrófono después de aceptar el permiso.
+        <h2 className="font-serif text-2xl sm:text-3xl">Ficha técnica</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Solo se muestran datos que el navegador sí entregó. Lo que no expone no aparece.
         </p>
       </div>
 
-      <h3 className="text-sm uppercase tracking-wide text-[var(--gold)]">Red e IP</h3>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Dato label="IPv4 pública (la más precisa en internet)" value={visitor.publicIpv4 || red.ipv4Publica || visitor.publicIp} />
+      <Bloque title="Red e IP">
+        <Dato label="IPv4 pública" value={visitor.publicIpv4 || red.ipv4Publica || visitor.publicIp} />
         <Dato label="IPv6 pública" value={visitor.publicIpv6 || red.ipv6Publica} />
-        <Dato label="IP de la conexión al servidor" value={visitor.lastIp || servidor.ipSocket} />
-        <Dato label="IP local Wi‑Fi (WebRTC host)" value={visitor.localIps || red.ipsLocalesWebRTC} />
+        {visitor.lastIp && visitor.lastIp !== (visitor.publicIpv4 || visitor.publicIp) ? (
+          <Dato label="IP de la conexión al servidor" value={visitor.lastIp} />
+        ) : null}
+        <Dato label="IP local Wi‑Fi" value={visitor.localIps || red.ipsLocalesWebRTC} />
         <Dato label="IP pública + puerto (STUN)" value={red.ipsStunPublicas} />
-        <Dato label="Candidatos ICE" value={red.iceCandidatos} />
-        <Dato label="Qué se puede y qué no" value={red.notaIp} />
         <Dato label="Tipo de conexión" value={visitor.connectionType || red.conexion} />
-        <Dato label="Bajada / latencia" value={red.bajadaMbps != null ? `${red.bajadaMbps} Mbps · ${red.latenciaMs} ms` : null} />
-      </div>
+        <Dato label="Bajada / latencia" value={redBajada} />
+      </Bloque>
 
-      <h3 className="text-sm uppercase tracking-wide text-[var(--gold)]">Máquina y sistema</h3>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Dato label="Modelo que sí entrega el navegador" value={visitor.deviceModel} />
-        <Dato label="Sistema" value={`${visitor.deviceOs || ""} ${visitor.osVersion || sistema.osVersion || ""}`} />
+      <Bloque title="Máquina y sistema">
+        <Dato label="Modelo" value={visitor.deviceModel} />
+        <Dato label="Sistema" value={sistemaTxt} />
         <Dato label="Arquitectura" value={visitor.architecture || sistema.arquitectura} />
         <Dato label="Núcleos CPU" value={visitor.cpuCores || maquina.nucleosCPU} />
         <Dato label="RAM aproximada (GB)" value={visitor.deviceMemoryGb || maquina.memoriaRAMAproxGB} />
-        <Dato label="GPU" value={visitor.gpuRenderer || gpu.renderizador} />
-        <Dato label="Proveedor GPU" value={visitor.gpuVendor || gpu.proveedor} />
+        <Dato label="GPU" value={gpuTxt} />
+        <Dato label="Proveedor GPU" value={gpuVendor && gpuVendor !== gpuTxt ? gpuVendor : null} />
         <Dato label="Plataforma" value={sistema.plataforma} />
-      </div>
+      </Bloque>
 
-      <h3 className="text-sm uppercase tracking-wide text-[var(--gold)]">Navegador y pantalla</h3>
-      <div className="grid gap-3 md:grid-cols-2">
+      <Bloque title="Navegador y pantalla">
         <Dato label="Navegador" value={visitor.browser} />
-        <Dato label="User-Agent completo" value={visitor.lastUserAgent || visitor.browserVersion || navegador.nombreCompleto} />
         <Dato label="Idiomas" value={navegador.idiomas || visitor.language} />
         <Dato label="Zona horaria" value={visitor.timezone || sistema.zonaHoraria} />
-        <Dato label="Pantalla física" value={pantalla.pantalla || `${visitor.screenWidth}×${visitor.screenHeight}`} />
+        <Dato label="Pantalla" value={pantallaFisica} />
         <Dato label="Ventana" value={pantalla.ventana} />
-        <Dato label="Pixel ratio / color" value={pantalla.pixelRatio != null ? `${pantalla.pixelRatio} · ${pantalla.colorDepth} bits` : null} />
-        <Dato label="Pistas de cliente (Chrome)" value={navegador.pistasCliente} />
-      </div>
+        <Dato
+          label="Pixel ratio / color"
+          value={pantalla.pixelRatio != null ? `${pantalla.pixelRatio} · ${pantalla.colorDepth} bits` : null}
+        />
+      </Bloque>
 
-      <h3 className="text-sm uppercase tracking-wide text-[var(--gold)]">Cámara, micrófono y cabeceras</h3>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Dato label="Dispositivos de audio/video" value={medios.etiquetas} />
-        <Dato label="Conteo cámara / mic / parlantes" value={`${medios.camaras ?? "?"} / ${medios.microfonos ?? "?"} / ${medios.parlantes ?? "?"}`} />
-        <Dato label="Nota de medios" value={medios.nota} />
-        <Dato label="Client-Hint modelo (cabecera)" value={servidor.clientHintModelo} />
+      <Bloque title="Cámara y micrófono">
+        <Dato label="Dispositivos" value={etiquetas} />
+        <Dato label="Client-Hint modelo" value={servidor.clientHintModelo} />
         <Dato label="Client-Hint plataforma" value={servidor.clientHintPlataforma} />
-        <Dato label="Accept-Language" value={servidor.idiomaAceptado} />
-      </div>
+      </Bloque>
     </section>
   );
 }
