@@ -48,7 +48,7 @@ Orden: primero el backend, luego el frontend, luego pegas la URL de Vercel en el
 2. *New Project* → *Deploy from GitHub repo* → `casino-zero-trust`.
 3. Añade un servicio **MySQL** al mismo proyecto (*Add service* → *Database* → *MySQL*).
 4. En el servicio de la API (el del repo):
-   - *Settings* → *Root Directory* = `backend`
+   - **Root Directory vacío** (no pongas `backend`; el `Dockerfile` de la raíz ya construye la API)
    - *Variables*:
 
 | Variable | Valor |

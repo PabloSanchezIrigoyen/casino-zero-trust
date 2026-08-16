@@ -1,9 +1,0 @@
-[variables]
-NIXPACKS_NODE_VERSION = "20"
-NPM_CONFIG_PRODUCTION = "false"
-
-[phases.setup]
-nixPkgs = ["nodejs_20"]
-
-[start]
-cmd = "npm start"

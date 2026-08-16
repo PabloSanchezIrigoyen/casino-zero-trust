@@ -1,0 +1,10 @@
+node_modules
+frontend
+.git
+.vercel
+backend/node_modules
+backend/dist
+backend/.env
+**/.env
+**/.env.local
+*.md
