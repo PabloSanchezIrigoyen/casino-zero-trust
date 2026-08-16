@@ -1,5 +1,9 @@
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+if (typeof window !== "undefined" && API.includes("localhost") && window.location.hostname !== "localhost") {
+  console.warn("NEXT_PUBLIC_API_URL apunta a localhost. En Vercel pon la URL pública del backend.");
+}
+
 export function visitorKey() {
   return "zt_visitor";
 }

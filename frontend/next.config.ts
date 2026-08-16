@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
+    if (process.env.NODE_ENV === "production") return [];
     return [{ source: "/api-lab/:path*", destination: "http://localhost:4000/api/:path*" }];
   },
 };

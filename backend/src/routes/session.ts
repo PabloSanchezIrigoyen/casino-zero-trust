@@ -24,16 +24,15 @@ function validEmail(email: string) {
 
 function setSessionCookie(res: { cookie: (name: string, value: string, opts: object) => void }, visitorId: string, allowed: boolean) {
   if (!allowed) return;
-  res.cookie("zt_visitor", visitorId, {
+  const crossSite = process.env.NODE_ENV === "production";
+  const opts = {
     httpOnly: false,
-    sameSite: "lax",
+    sameSite: crossSite ? "none" : "lax",
+    secure: crossSite,
     maxAge: 1000 * 60 * 60 * 24 * 30,
-  });
-  res.cookie("zt_consent", "1", {
-    httpOnly: false,
-    sameSite: "lax",
-    maxAge: 1000 * 60 * 60 * 24 * 30,
-  });
+  };
+  res.cookie("zt_visitor", visitorId, opts);
+  res.cookie("zt_consent", "1", opts);
 }
 
 sessionRouter.post("/register", async (req, res) => {
