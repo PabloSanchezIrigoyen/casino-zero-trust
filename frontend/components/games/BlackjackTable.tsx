@@ -63,11 +63,29 @@ function CardView({ card, hidden }: { card?: Card; hidden?: boolean }) {
   );
 }
 
+async function showStream(video: HTMLVideoElement, stream: MediaStream) {
+  video.muted = true;
+  video.defaultMuted = true;
+  video.autoplay = true;
+  video.playsInline = true;
+  video.setAttribute("playsinline", "true");
+  video.setAttribute("webkit-playsinline", "true");
+  video.srcObject = stream;
+  try {
+    await video.play();
+  } catch {
+    // El navegador a veces espera el primer frame antes de dejar autoplay.
+  }
+}
+
 export function BlackjackTable() {
   const { requestCamera, requestMicrophone, visitor } = useLab();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
   const [level, setLevel] = useState(0);
   const [shoe, setShoe] = useState<Card[]>([]);
   const [player, setPlayer] = useState<Card[]>([]);
@@ -115,8 +133,26 @@ export function BlackjackTable() {
     else setStatus(`Dealer gana. Tú ${pv} · dealer ${dv}`);
   };
 
+  cameraStreamRef.current = cameraStream;
+  micStreamRef.current = micStream;
+
   useEffect(() => {
-    if (videoRef.current && cameraStream) videoRef.current.srcObject = cameraStream;
+    const video = videoRef.current;
+    if (!video || !cameraStream) {
+      setPreviewReady(false);
+      return;
+    }
+    const onPlaying = () => setPreviewReady(true);
+    const onMeta = () => {
+      void showStream(video, cameraStream);
+    };
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("loadedmetadata", onMeta);
+    void showStream(video, cameraStream);
+    return () => {
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("loadedmetadata", onMeta);
+    };
   }, [cameraStream]);
 
   useEffect(() => {
@@ -142,10 +178,10 @@ export function BlackjackTable() {
 
   useEffect(() => {
     return () => {
-      cameraStream?.getTracks().forEach((t) => t.stop());
-      micStream?.getTracks().forEach((t) => t.stop());
+      cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [cameraStream, micStream]);
+  }, []);
 
   const live = Boolean(cameraStream);
 
@@ -200,13 +236,33 @@ export function BlackjackTable() {
               </span>
               <span>{visitor?.cameraStatus}</span>
             </div>
-            <video ref={videoRef} autoPlay muted playsInline className="aspect-video w-full bg-black object-cover" />
+            <div className="relative bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                controls={false}
+                disablePictureInPicture
+                className="aspect-video min-h-[160px] w-full bg-black object-cover"
+                style={{ transform: "scaleX(-1)" }}
+              />
+              {live && !previewReady ? (
+                <p className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-white/70">
+                  Cámara encendida. Esperando la imagen…
+                </p>
+              ) : null}
+            </div>
           </div>
           <button
             type="button"
             onClick={async () => {
               const stream = await requestCamera("Mesa en vivo de Blackjack. Preview visible. No se almacena video.");
+              if (!stream) return;
+              cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
+              setPreviewReady(false);
               setCameraStream(stream);
+              if (videoRef.current) void showStream(videoRef.current, stream);
             }}
             className="min-h-11 w-full rounded-xl border border-red-400/40 px-3 py-2 text-sm"
           >

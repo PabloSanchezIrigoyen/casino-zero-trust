@@ -278,7 +278,19 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       tone: "info",
     });
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
       await reportPermission("camera", "granted", context, { cameraStatus: "granted" });
       pushToast({
         title: "Cámara encendida",
