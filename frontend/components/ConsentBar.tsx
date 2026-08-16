@@ -5,10 +5,11 @@ import { useLab } from "@/context/LabSession";
 
 export function ConsentBar() {
   const pathname = usePathname();
-  const { loggedIn, ready, cookieChoice, setCookieChoice } = useLab();
+  const { loggedIn, ready, cookieChoice, visitor, setCookieChoice } = useLab();
 
   if (pathname.startsWith("/admin")) return null;
   if (!ready || !loggedIn || cookieChoice !== null) return null;
+  if (visitor?.cookieConsentAt) return null;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-4 sm:items-center">

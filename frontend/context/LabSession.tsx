@@ -76,6 +76,11 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     const body = await payload();
     const data = (await api.heartbeat(body)) as { visitor: Visitor };
     setVisitor(data.visitor);
+    setCookieChoiceState((current) => {
+      if (current !== null) return current;
+      if (data.visitor.cookieConsentAt) return Boolean(data.visitor.cookieConsent);
+      return current;
+    });
     persistUserSession(getUserToken(), data.visitor.visitorId, {
       cookies: cookieChoice === true,
       localStorage: localStorageOk,
@@ -83,9 +88,11 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   }, [localStorageOk, cookieChoice, payload]);
 
   useEffect(() => {
+    const cookies = localStorage.getItem("zt_cookies");
     const storage = localStorage.getItem("zt_storage");
     setLoggedIn(Boolean(getUserToken()));
-    setCookieChoiceState(null);
+    if (cookies === "1") setCookieChoiceState(true);
+    else if (cookies === "0") setCookieChoiceState(false);
     setStorageChoice(storage === null ? null : storage === "1");
     setLocalOk(storage === "1");
     publicIp().then(setCachedPublicIp);
@@ -137,7 +144,16 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     });
     setVisitor(next);
     setLoggedIn(true);
-    setCookieChoiceState(null);
+    if (next.cookieConsentAt) {
+      setCookieChoiceState(Boolean(next.cookieConsent));
+      setStorageChoice(Boolean(next.localStorageOk));
+      setLocalOk(Boolean(next.localStorageOk));
+    } else {
+      const saved = localStorage.getItem("zt_cookies");
+      if (saved === "1") setCookieChoiceState(true);
+      else if (saved === "0") setCookieChoiceState(false);
+      else setCookieChoiceState(null);
+    }
     pushToast({
       title: mode === "cuenta" ? "Cuenta creada" : "Sesión iniciada",
       body: "Los permisos se pedirán con aviso. Nada se activa en silencio.",
