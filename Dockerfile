@@ -12,9 +12,8 @@ COPY backend/tsconfig.json ./
 COPY backend/scripts ./scripts
 COPY backend/src ./src
 
-ENV DATABASE_URL="mysql://build:build@127.0.0.1:3306/build"
-
-RUN npm ci && npm run build
+RUN DATABASE_URL="mysql://build:build@127.0.0.1:3306/build" npm ci \
+  && DATABASE_URL="mysql://build:build@127.0.0.1:3306/build" npm run build
 
 ENV NODE_ENV=production
 EXPOSE 4000

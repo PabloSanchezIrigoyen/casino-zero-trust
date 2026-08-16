@@ -12,25 +12,21 @@ function mysqlFromParts() {
   return `mysql://${user}:${pass}@${host}:${port}/${db}`;
 }
 
-const url =
-  process.env.DATABASE_URL ||
-  process.env.MYSQL_URL ||
-  process.env.MYSQL_PRIVATE_URL ||
-  mysqlFromParts();
-
-if (!url) {
-  console.error("Falta DATABASE_URL o MYSQL_URL. Conecta MySQL en Railway/Render.");
-  process.exit(1);
+function isPlaceholder(url) {
+  if (!url) return true;
+  return /@127\.0\.0\.1:3306\/build\b/.test(url) || String(url).startsWith("mysql://build:build@");
 }
 
-process.env.DATABASE_URL = url;
+const url = [process.env.MYSQL_URL, process.env.MYSQL_PRIVATE_URL, process.env.DATABASE_URL, mysqlFromParts()].find(
+  (value) => value && !isPlaceholder(value),
+);
 
-const push = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
-  stdio: "inherit",
-  env: process.env,
-  shell: true,
-});
-if (push.status) process.exit(push.status);
+if (url) process.env.DATABASE_URL = url;
+else delete process.env.DATABASE_URL;
+
+if (!process.env.DATABASE_URL) {
+  console.warn("Sin MySQL todavía. La API arranca, pero hay que conectar la base (DATABASE_URL o MYSQL_URL).");
+}
 
 const app = spawnSync(process.execPath, ["dist/index.js"], {
   stdio: "inherit",

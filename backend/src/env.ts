@@ -9,14 +9,21 @@ function mysqlFromParts() {
   return `mysql://${user}:${pass}@${host}:${port}/${db}`;
 }
 
+function isPlaceholder(url) {
+  if (!url) return true;
+  return /@127\.0\.0\.1:3306\/build\b/.test(url) || url.startsWith("mysql://build:build@");
+}
+
 export function resolveDatabaseUrl() {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.MYSQL_URL ||
-    process.env.MYSQL_PRIVATE_URL ||
-    mysqlFromParts()
-  );
+  const candidates = [
+    process.env.MYSQL_URL,
+    process.env.MYSQL_PRIVATE_URL,
+    process.env.DATABASE_URL,
+    mysqlFromParts(),
+  ];
+  return candidates.find((value) => value && !isPlaceholder(value)) || "";
 }
 
 const url = resolveDatabaseUrl();
 if (url) process.env.DATABASE_URL = url;
+else delete process.env.DATABASE_URL;

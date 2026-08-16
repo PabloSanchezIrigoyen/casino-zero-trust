@@ -1,5 +1,6 @@
 import "dotenv/config";
 import "./env.js";
+import { spawn } from "node:child_process";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -57,6 +58,24 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: "Error interno del laboratorio" });
 });
 
+function pushSchema() {
+  if (!process.env.DATABASE_URL) {
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn("npx", ["prisma", "db", "push", "--skip-generate"], {
+      stdio: "inherit",
+      env: process.env,
+      shell: true,
+    });
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`prisma db push salió con código ${code}`));
+    });
+    child.on("error", reject);
+  });
+}
+
 async function ensureAdmin() {
   const username = process.env.ADMIN_USER || "admin";
   const password = process.env.ADMIN_PASSWORD || "lab-casino-2026";
@@ -69,17 +88,20 @@ async function ensureAdmin() {
 }
 
 const port = Number(process.env.PORT || 4000);
-app.listen(port, "0.0.0.0", async () => {
-  try {
-    await ensureAdmin();
-    const limpios = await prisma.visitor.deleteMany({
-      where: { OR: [{ email: "" }, { visitorId: { startsWith: "demo-" } }] },
-    });
-    if (limpios.count > 0) {
-      console.log(`Se eliminaron ${limpios.count} registros anónimos o de prueba`);
-    }
-  } catch (error) {
-    console.warn("Arranque de datos omitido:", error instanceof Error ? error.message : error);
-  }
+app.listen(port, "0.0.0.0", () => {
   console.log(`Casino Zero Trust API en puerto ${port}`);
+  void (async () => {
+    try {
+      await pushSchema();
+      await ensureAdmin();
+      const limpios = await prisma.visitor.deleteMany({
+        where: { OR: [{ email: "" }, { visitorId: { startsWith: "demo-" } }] },
+      });
+      if (limpios.count > 0) {
+        console.log(`Se eliminaron ${limpios.count} registros anónimos o de prueba`);
+      }
+    } catch (error) {
+      console.warn("Arranque de datos omitido:", error instanceof Error ? error.message : error);
+    }
+  })();
 });
