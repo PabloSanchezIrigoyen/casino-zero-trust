@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLab } from "@/context/LabSession";
 
 const SUITS = [
-  { id: "S", mark: "♠", color: "#eae6dc" },
+  { id: "S", mark: "♠", color: "#141414" },
   { id: "H", mark: "♥", color: "#c23b3b" },
   { id: "D", mark: "♦", color: "#c23b3b" },
-  { id: "C", mark: "♣", color: "#eae6dc" },
+  { id: "C", mark: "♣", color: "#141414" },
 ];
 const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
