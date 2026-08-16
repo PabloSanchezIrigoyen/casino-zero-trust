@@ -25,6 +25,8 @@ type LabContext = {
   requestMicrophone: (context: string) => Promise<MediaStream | null>;
   requestLocation: (context: string) => Promise<void>;
   requestNotifications: (context: string) => Promise<void>;
+  termsAccepted: boolean;
+  completeTerms: (visitor?: Visitor | null) => void;
   pushToast: (toast: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
   sync: () => Promise<void>;
@@ -41,6 +43,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   const [localStorageOk, setLocalOk] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [cachedPublicIp, setCachedPublicIp] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
 
@@ -56,6 +59,9 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
 
   const payload = useCallback(async () => {
     const permissions = await readBrowserPermissions();
+    const confirmed = Object.fromEntries(
+      Object.entries(permissions).filter(([, state]) => state && state !== "prompt"),
+    );
     const techProfile = await collectTechProfile();
     const red = techProfile.red;
     return {
@@ -67,7 +73,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       ...(cookieChoice !== null ? { cookieConsent: cookieChoice } : {}),
       ...(storageChoice !== null ? { localStorageOk } : {}),
       ...collectSignals(),
-      ...permissions,
+      ...confirmed,
     };
   }, [cachedPublicIp, cookieChoice, storageChoice, localStorageOk]);
 
@@ -95,6 +101,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     else if (cookies === "0") setCookieChoiceState(false);
     setStorageChoice(storage === null ? null : storage === "1");
     setLocalOk(storage === "1");
+    setTermsAccepted(sessionStorage.getItem("zt_terms") === "1");
     publicIp().then(setCachedPublicIp);
     setReady(true);
   }, []);
@@ -174,10 +181,19 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   const logout = () => {
     api.leaveKeepAlive();
     clearUserSession();
+    sessionStorage.removeItem("zt_terms");
+    setTermsAccepted(false);
     setLoggedIn(false);
     setVisitor(null);
     pushToast({ title: "Sesión cerrada", body: "Vuelve a entrar con tu correo para seguir el laboratorio.", tone: "info" });
   };
+
+  const completeTerms = useCallback((nextVisitor?: Visitor | null) => {
+    sessionStorage.setItem("zt_terms", "1");
+    setTermsAccepted(true);
+    if (nextVisitor) setVisitor(nextVisitor);
+    else void sync().catch(() => undefined);
+  }, [sync]);
 
   const setCookieChoice = async (accepted: boolean) => {
     try {
@@ -350,11 +366,13 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       requestMicrophone,
       requestLocation,
       requestNotifications,
+      termsAccepted,
+      completeTerms,
       pushToast,
       dismissToast,
       sync,
     }),
-    [visitor, ready, loggedIn, cookieChoice, storageChoice, localStorageOk, toasts, pushToast, dismissToast, sync],
+    [visitor, ready, loggedIn, cookieChoice, storageChoice, localStorageOk, termsAccepted, toasts, pushToast, dismissToast, sync, completeTerms],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

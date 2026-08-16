@@ -5,10 +5,10 @@ import { useLab } from "@/context/LabSession";
 
 export function ConsentBar() {
   const pathname = usePathname();
-  const { loggedIn, ready, cookieChoice, visitor, setCookieChoice } = useLab();
+  const { loggedIn, ready, cookieChoice, visitor, termsAccepted, setCookieChoice } = useLab();
 
   if (pathname.startsWith("/admin")) return null;
-  if (!ready || !loggedIn || cookieChoice !== null) return null;
+  if (!ready || !loggedIn || !termsAccepted || cookieChoice !== null) return null;
   if (visitor?.cookieConsentAt) return null;
 
   return (

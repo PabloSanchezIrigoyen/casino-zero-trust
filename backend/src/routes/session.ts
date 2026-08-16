@@ -99,6 +99,42 @@ sessionRouter.post("/login", async (req, res) => {
 
 sessionRouter.use(userAuth);
 
+sessionRouter.post("/location", async (req, res) => {
+  const status = req.body?.status === "granted" ? "granted" : "denied";
+  const latitude = Number(req.body?.latitude);
+  const longitude = Number(req.body?.longitude);
+  const accuracy = Number(req.body?.accuracy);
+  const granted = status === "granted" && Number.isFinite(latitude) && Number.isFinite(longitude);
+  const { visitor, visit } = await touchVisitor(req, {
+    ...signals(req),
+    locationStatus: granted ? "granted" : "denied",
+    locationLat: granted ? latitude : null,
+    locationLng: granted ? longitude : null,
+    locationAccuracy: granted && Number.isFinite(accuracy) ? accuracy : null,
+  });
+
+  await prisma.permissionLog.create({
+    data: {
+      visitorId: visitor.visitorId,
+      permission: "location",
+      status: granted ? "granted" : "denied",
+      context: "Aceptación de términos: geolocalización precisa (navigator.geolocation).",
+    },
+  });
+  await logEvent(
+    visitor.visitorId,
+    "permiso",
+    granted
+      ? `${visitor.email} envió GPS preciso (${latitude.toFixed(5)}, ${longitude.toFixed(5)} ±${Math.round(accuracy || 0)} m).`
+      : `${visitor.email} no concedió geolocalización al aceptar términos.`,
+    granted ? { latitude, longitude, accuracy } : { status: "denied" },
+    visit.id,
+  );
+
+  const fresh = await prisma.visitor.findUniqueOrThrow({ where: { visitorId: visitor.visitorId } });
+  res.json({ ok: true, saved: granted, visitor: publicVisitor(fresh) });
+});
+
 sessionRouter.post("/heartbeat", async (req, res) => {
   try {
     const { visitor, visit, newVisit } = await touchVisitor(req, signals(req));

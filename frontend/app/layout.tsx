@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Outfit } from "next/font/google";
 import { LabSessionProvider } from "@/context/LabSession";
 import { SiteHeader } from "@/components/SiteHeader";
 import { LabGate } from "@/components/LabGate";
+import { AcceptTerms } from "@/components/AcceptTerms";
 import { ConsentBar } from "@/components/ConsentBar";
 import { Toasts } from "@/components/Toasts";
 import "./globals.css";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LabSessionProvider>
           <SiteHeader />
           <LabGate />
+          <AcceptTerms />
           <Toasts />
           <ConsentBar />
           <main className="mx-auto min-h-[calc(100vh-80px)] max-w-6xl px-3 py-5 sm:px-4 sm:py-8">{children}</main>
