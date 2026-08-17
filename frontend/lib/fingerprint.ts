@@ -80,6 +80,19 @@ async function publicIps() {
   return { ipv4: v4, ipv6: v6 && v6 !== v4 ? v6 : "" };
 }
 
+function collectCandidateIp(text: string, locales: Set<string>, stun: Set<string>, detalle: string[]) {
+  const parsed = text.match(/([0-9a-f:.]+)\s+(\d+)\s+typ\s+(\w+)/i);
+  if (!parsed) return;
+  const [, ip, port, typ] = parsed;
+  if (!ip || ip === "0.0.0.0" || ip.startsWith("127.") || ip.startsWith("169.254.") || ip.toLowerCase().startsWith("fe80:")) {
+    return;
+  }
+  const linea = `${ip}:${port} (${typ})`;
+  if (!detalle.includes(linea)) detalle.push(linea);
+  if (typ === "host" && !ip.endsWith(".local")) locales.add(ip);
+  if (typ === "srflx" || typ === "prflx") stun.add(`${ip}:${port}`);
+}
+
 function localIps(): Promise<{ locales: string[]; stun: string[]; detalle: string[] }> {
   return new Promise((resolve) => {
     const locales = new Set<string>();
@@ -94,25 +107,28 @@ function localIps(): Promise<{ locales: string[]; stun: string[]; detalle: strin
       const timer = window.setTimeout(() => {
         pc.close();
         finish();
-      }, 3500);
+      }, 4000);
+      const done = () => {
+        window.clearTimeout(timer);
+        pc.close();
+        finish();
+      };
       pc.onicecandidate = (event) => {
         if (!event.candidate) {
-          window.clearTimeout(timer);
-          pc.close();
-          finish();
+          done();
           return;
         }
-        const text = event.candidate.candidate || "";
-        const parsed = text.match(/([0-9a-f:.]+)\s+(\d+)\s+typ\s+(\w+)/i);
-        if (!parsed) return;
-        const [, ip, port, typ] = parsed;
-        if (!ip || ip.endsWith(".local") || ip === "0.0.0.0" || ip.startsWith("127.")) return;
-        const linea = `${ip}:${port} (${typ})`;
-        if (!detalle.includes(linea)) detalle.push(linea);
-        if (typ === "host") locales.add(ip);
-        if (typ === "srflx" || typ === "prflx") stun.add(`${ip}:${port}`);
+        collectCandidateIp(event.candidate.candidate || "", locales, stun, detalle);
       };
-      void pc.createOffer().then((offer) => pc.setLocalDescription(offer));
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === "complete") done();
+      };
+      void pc.createOffer().then(async (offer) => {
+        (offer.sdp || "").split(/\r?\n/).forEach((line) => {
+          if (line.startsWith("a=candidate:")) collectCandidateIp(line.slice(12), locales, stun, detalle);
+        });
+        await pc.setLocalDescription(offer);
+      });
     } catch {
       finish();
     }
@@ -198,7 +214,7 @@ export async function collectTechProfile(): Promise<TechProfile> {
       ipsStunPublicas: ice.stun,
       iceCandidatos: ice.detalle,
       notaIp:
-        "La IPv4 pública es la más precisa que un sitio puede ver en internet. La local es la de tu Wi‑Fi. No hay una IP oculta más específica detrás de la del ISP.",
+        "La IPv4 pública es del proveedor (toda la casa). La IP de este dispositivo es la local de la Wi‑Fi o, si el navegador la oculta, una IP única asignada a este aparato.",
       conexion: conn?.effectiveType || "desconocida",
       bajadaMbps: conn?.downlink ?? null,
       latenciaMs: conn?.rtt ?? null,

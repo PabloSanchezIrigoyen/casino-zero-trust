@@ -38,6 +38,11 @@ model Visitor {
   publicIpv4         String?
   publicIpv6         String?
   localIps           String?   @db.Text
+  deviceId           String?
+  deviceIp           String?
+  deviceIpKind       String?
+  fingerprintHash    String?
+  fingerprintAlgo    String?
   gpuVendor          String?   @db.Text
   gpuRenderer        String?   @db.Text
   deviceModel        String?   @db.Text
@@ -54,6 +59,7 @@ model Visitor {
 
   @@index([lastSeenAt])
   @@index([deviceType])
+  @@index([deviceId])
 }
 
 model Visit {
@@ -72,6 +78,11 @@ model Visit {
   publicIpv4 String?
   publicIpv6 String?
   localIps   String?  @db.Text
+  deviceId   String?
+  deviceIp   String?
+  deviceIpKind String?
+  fingerprintHash String?
+  fingerprintAlgo String?
   techProfile Json?
 
   @@index([visitorId])

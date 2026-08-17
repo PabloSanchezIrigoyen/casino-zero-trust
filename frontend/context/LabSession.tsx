@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { api, clearUserSession, getUserToken, persistUserSession } from "@/lib/api";
 import { collectSignals, publicIp } from "@/lib/device";
 import { collectTechProfile } from "@/lib/fingerprint";
+import { collectPersistentDevice } from "@/lib/deviceFingerprint";
+import { resolveDeviceIp } from "@/lib/deviceIdentity";
 import { capturePrecisePosition } from "@/lib/geolocation";
 import { readBrowserPermissions, roundCoord } from "@/lib/permissions";
 import type { PermissionState, Toast, Visitor } from "@/lib/types";
@@ -65,12 +67,34 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     );
     const techProfile = await collectTechProfile();
     const red = techProfile.red;
+    const locales = Array.isArray(red.ipsLocalesWebRTC) ? (red.ipsLocalesWebRTC as string[]) : [];
+    const huella = await collectPersistentDevice();
+    const device = resolveDeviceIp(locales, huella.deviceId);
     return {
       publicIp: (red.ipv4Publica as string) || cachedPublicIp || (await publicIp()),
       publicIpv4: red.ipv4Publica,
       publicIpv6: red.ipv6Publica,
-      localIps: red.ipsLocalesWebRTC,
-      techProfile,
+      localIps: locales,
+      deviceId: huella.deviceId,
+      fingerprintHash: huella.fingerprintHash,
+      fingerprintAlgo: huella.fingerprintAlgo,
+      deviceIp: device.deviceIp,
+      deviceIpKind: device.deviceIpKind,
+      techProfile: {
+        ...techProfile,
+        red: {
+          ...red,
+          ipDeEsteDispositivo: device.deviceIp,
+          origenIpDispositivo: device.deviceIpKind,
+          idDeDispositivo: huella.deviceId,
+        },
+        huella: {
+          deviceId: huella.deviceId,
+          hash: huella.fingerprintHash,
+          algoritmo: huella.fingerprintAlgo,
+          señales: huella.signals,
+        },
+      },
       ...(cookieChoice !== null ? { cookieConsent: cookieChoice } : {}),
       ...(storageChoice !== null ? { localStorageOk } : {}),
       ...collectSignals(),

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { dispositivo, enLinea, estadoCookie, estadoPermiso } from "@/lib/labels";
+import { deviceIpCaption } from "@/lib/deviceIdentity";
 import { mapsUrl } from "@/lib/maps";
 import type { LabEvent, Visitor } from "@/lib/types";
 
@@ -45,8 +46,15 @@ function VisitorCard({ row }: { row: Visitor }) {
           {dispositivo(row.deviceType)}
           {row.browser ? ` · ${row.browser}` : ""}
         </p>
-        {ip ? <p className="mt-1 font-mono text-sm break-all">{ip}</p> : null}
-        {row.localIps ? <p className="mt-1 text-xs text-[var(--muted)]">Wi‑Fi {row.localIps}</p> : null}
+        {row.deviceId ? (
+          <p className="mt-2 font-mono text-xs break-all text-[var(--gold-2)]">ID {row.deviceId}</p>
+        ) : null}
+        {row.deviceIp ? (
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {deviceIpCaption(row.deviceIpKind)} · {row.deviceIp}
+          </p>
+        ) : null}
+        {ip ? <p className="mt-1 text-xs text-[var(--muted)]">Proveedor {ip}</p> : null}
         {hasGps ? (
           <p className="mt-1 font-mono text-xs text-emerald-300">
             {row.locationLat}, {row.locationLng}

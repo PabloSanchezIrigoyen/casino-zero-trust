@@ -30,6 +30,11 @@ export type Visitor = {
   publicIpv4?: string | null;
   publicIpv6?: string | null;
   localIps?: string | null;
+  deviceId?: string | null;
+  deviceIp?: string | null;
+  deviceIpKind?: string | null;
+  fingerprintHash?: string | null;
+  fingerprintAlgo?: string | null;
   gpuVendor?: string | null;
   gpuRenderer?: string | null;
   deviceModel?: string | null;
@@ -52,6 +57,12 @@ export type Visit = {
   publicIp: string | null;
   deviceType: string | null;
   path: string | null;
+  localIps?: string | null;
+  deviceId?: string | null;
+  deviceIp?: string | null;
+  deviceIpKind?: string | null;
+  fingerprintHash?: string | null;
+  fingerprintAlgo?: string | null;
 };
 
 export type LabEvent = {

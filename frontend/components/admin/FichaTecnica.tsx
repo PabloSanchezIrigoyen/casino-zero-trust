@@ -39,6 +39,8 @@ export function FichaTecnica({ visitor }: { visitor: Visitor }) {
     red.bajadaMbps != null && red.latenciaMs != null ? `${red.bajadaMbps} Mbps · ${red.latenciaMs} ms` : red.bajadaMbps != null ? `${red.bajadaMbps} Mbps` : null;
   const gpuTxt = visitor.gpuRenderer || gpu.renderizador;
   const gpuVendor = visitor.gpuVendor || gpu.proveedor;
+  const huella = (profile.huella || {}) as Record<string, unknown>;
+  const señales = (huella.señales || {}) as Record<string, unknown>;
   const etiquetas = Array.isArray(medios.etiquetas) ? medios.etiquetas.filter(Boolean) : medios.etiquetas;
 
   return (
@@ -50,13 +52,30 @@ export function FichaTecnica({ visitor }: { visitor: Visitor }) {
         </p>
       </div>
 
+      <Bloque title="Huella del dispositivo">
+        <Dato label="ID persistente (FingerprintJS)" value={visitor.deviceId || huella.deviceId} />
+        <Dato label="Hash canvas + WebGL + UA" value={visitor.fingerprintHash || huella.hash} />
+        <Dato label="Algoritmo" value={visitor.fingerprintAlgo || huella.algoritmo} />
+        <Dato label="User-Agent" value={señales.userAgent} />
+        <Dato label="WebGL" value={señales.webgl} />
+        <Dato label="Pantalla en la huella" value={señales.screen} />
+        <Dato label="Zona horaria en la huella" value={señales.timezone} />
+      </Bloque>
+
       <Bloque title="Red e IP">
-        <Dato label="IPv4 pública" value={visitor.publicIpv4 || red.ipv4Publica || visitor.publicIp} />
+        <Dato label="IP de este dispositivo" value={visitor.deviceIp} />
+        <Dato label="IPv4 pública (proveedor)" value={visitor.publicIpv4 || red.ipv4Publica || visitor.publicIp} />
         <Dato label="IPv6 pública" value={visitor.publicIpv6 || red.ipv6Publica} />
         {visitor.lastIp && visitor.lastIp !== (visitor.publicIpv4 || visitor.publicIp) ? (
           <Dato label="IP de la conexión al servidor" value={visitor.lastIp} />
         ) : null}
-        <Dato label="IP local Wi‑Fi" value={visitor.localIps || red.ipsLocalesWebRTC} />
+        <Dato label="Otras IPs locales WebRTC" value={
+          visitor.localIps && visitor.localIps !== visitor.deviceIp
+            ? visitor.localIps
+            : red.ipsLocalesWebRTC && String(red.ipsLocalesWebRTC) !== visitor.deviceIp
+              ? red.ipsLocalesWebRTC
+              : null
+        } />
         <Dato label="IP pública + puerto (STUN)" value={red.ipsStunPublicas} />
         <Dato label="Tipo de conexión" value={visitor.connectionType || red.conexion} />
         <Dato label="Bajada / latencia" value={redBajada} />

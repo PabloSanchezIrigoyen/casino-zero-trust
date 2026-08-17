@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { FichaTecnica } from "@/components/admin/FichaTecnica";
 import { GpsPanel } from "@/components/admin/GpsPanel";
 import { dispositivo, estadoAlmacenamiento, estadoCookie, estadoPermiso, nombrePermiso } from "@/lib/labels";
+import { deviceIpCaption } from "@/lib/deviceIdentity";
 import { isEmptyValue } from "@/lib/visible";
 import type { LabEvent, PermissionLog, Visit, Visitor } from "@/lib/types";
 
@@ -69,6 +70,13 @@ export default function VisitorDetailPage() {
   ];
   const ipPublica = visitor.publicIpv4 || visitor.publicIp;
   const idiomaZona = [visitor.language, visitor.timezone].filter(Boolean).join(" · ");
+  const dispositivosVistos = Array.from(
+    new Map(
+      visitor.visits
+        .filter((visit) => visit.deviceIp || visit.deviceId)
+        .map((visit) => [visit.deviceId || visit.deviceIp || visit.id, visit]),
+    ).values(),
+  );
 
   return (
     <div className="space-y-6">
@@ -97,7 +105,11 @@ export default function VisitorDetailPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         <Info label="Dispositivo" value={`${dispositivo(visitor.deviceType)}${visitor.deviceOs ? ` · ${visitor.deviceOs}` : ""}`} />
         <Info label="Navegador" value={visitor.browser} />
-        <Info label="IP pública" value={ipPublica} />
+        <Info label="ID de dispositivo" value={visitor.deviceId} />
+        <Info label="Hash de huella" value={visitor.fingerprintHash} />
+        <Info label="IP de este dispositivo" value={visitor.deviceIp} />
+        <Info label="Tipo de IP de dispositivo" value={visitor.deviceIp ? deviceIpCaption(visitor.deviceIpKind) : null} />
+        <Info label="IP pública (proveedor)" value={ipPublica} />
         <Info label="Pantalla" value={visitor.screenWidth ? `${visitor.screenWidth}×${visitor.screenHeight}` : null} />
         <Info label="Idioma / zona" value={idiomaZona} />
         <Info
@@ -106,9 +118,26 @@ export default function VisitorDetailPage() {
         />
       </div>
       <p className="text-xs text-[var(--muted)]">
-        La IP pública es la del proveedor. Un lookup puede mostrar otra ciudad (por ejemplo Chihuahua) porque así
-        está registrado el bloque, no porque use GPS.
+        La IP de este dispositivo identifica el aparato. La IP pública es la del proveedor: en la misma Wi‑Fi suele ser
+        igual en el celular y en la computadora.
       </p>
+      {dispositivosVistos.length > 0 ? (
+        <section>
+          <h2 className="font-serif text-2xl sm:text-3xl">Dispositivos de esta cuenta</h2>
+          <div className="mt-3 space-y-2">
+            {dispositivosVistos.map((item) => (
+              <div key={item.deviceId || item.id} className="rounded-xl border border-white/10 px-3 py-3">
+                <p className="font-mono text-sm break-all text-[var(--gold-2)]">{item.deviceId || item.deviceIp}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {dispositivo(item.deviceType)}
+                  {item.deviceIp ? ` · ${item.deviceIp}` : ""}
+                  {item.fingerprintHash ? ` · hash ${item.fingerprintHash.slice(0, 12)}…` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <FichaTecnica visitor={visitor} />
       <GpsPanel visitor={visitor} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -125,7 +154,8 @@ export default function VisitorDetailPage() {
           {visitor.visits.map((visit) => (
             <p key={visit.id} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-[var(--muted)]">
               {new Date(visit.startedAt).toLocaleString("es-MX")} · {dispositivo(visit.deviceType)}
-              {visit.publicIp || visit.ip ? ` · ${visit.publicIp || visit.ip}` : ""}
+              {visit.deviceIp ? ` · dispositivo ${visit.deviceIp}` : ""}
+              {visit.publicIp || visit.ip ? ` · proveedor ${visit.publicIp || visit.ip}` : ""}
             </p>
           ))}
         </div>

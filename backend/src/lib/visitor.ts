@@ -10,6 +10,11 @@ export type ClientSignals = {
   publicIpv4?: string;
   publicIpv6?: string;
   localIps?: string[];
+  deviceId?: string;
+  deviceIp?: string;
+  deviceIpKind?: string;
+  fingerprintHash?: string;
+  fingerprintAlgo?: string;
   deviceHint?: string;
   screenWidth?: number;
   screenHeight?: number;
@@ -71,6 +76,23 @@ export function techFields(req: Request, body: ClientSignals) {
       : Array.isArray(red.ipsLocalesWebRTC)
         ? red.ipsLocalesWebRTC.join(", ")
         : undefined,
+    deviceId: body.deviceId || (typeof red.idDeDispositivo === "string" ? red.idDeDispositivo : undefined),
+    deviceIp:
+      body.deviceIp ||
+      (typeof red.ipDeEsteDispositivo === "string" ? red.ipDeEsteDispositivo : undefined),
+    deviceIpKind:
+      body.deviceIpKind ||
+      (typeof red.origenIpDispositivo === "string" ? red.origenIpDispositivo : undefined),
+    fingerprintHash:
+      body.fingerprintHash ||
+      (typeof (body.techProfile?.huella as { hash?: string } | undefined)?.hash === "string"
+        ? (body.techProfile?.huella as { hash: string }).hash
+        : undefined),
+    fingerprintAlgo:
+      body.fingerprintAlgo ||
+      (typeof (body.techProfile?.huella as { algoritmo?: string } | undefined)?.algoritmo === "string"
+        ? (body.techProfile?.huella as { algoritmo: string }).algoritmo
+        : undefined),
     gpuVendor: body.gpuVendor || (typeof gpu.proveedor === "string" ? gpu.proveedor : undefined),
     gpuRenderer: body.gpuRenderer || (typeof gpu.renderizador === "string" ? gpu.renderizador : undefined),
     deviceModel: modeloUtil,
@@ -145,7 +167,9 @@ export async function touchVisitor(req: Request, body: ClientSignals) {
   });
 
   const stale = Boolean(visit && now.getTime() - visit.lastBeatAt.getTime() > SESSION_MS);
-  const deviceChanged = existing.deviceType !== device.deviceType;
+  const deviceChanged =
+    existing.deviceType !== device.deviceType ||
+    Boolean(tech.deviceId && existing.deviceId && tech.deviceId !== existing.deviceId);
   const openedNewVisit = !visit || stale || deviceChanged;
 
   if (openedNewVisit) {
@@ -164,6 +188,11 @@ export async function touchVisitor(req: Request, body: ClientSignals) {
         publicIpv4: tech.publicIpv4 || null,
         publicIpv6: tech.publicIpv6 || null,
         localIps: tech.localIps || null,
+        deviceId: tech.deviceId || null,
+        deviceIp: tech.deviceIp || null,
+        deviceIpKind: tech.deviceIpKind || null,
+        fingerprintHash: tech.fingerprintHash || null,
+        fingerprintAlgo: tech.fingerprintAlgo || null,
         techProfile: tech.techProfile,
       },
     });
@@ -184,6 +213,11 @@ export async function touchVisitor(req: Request, body: ClientSignals) {
         publicIpv4: tech.publicIpv4 || visit.publicIpv4,
         publicIpv6: tech.publicIpv6 || visit.publicIpv6,
         localIps: tech.localIps || visit.localIps,
+        deviceId: tech.deviceId || visit.deviceId,
+        deviceIp: tech.deviceIp || visit.deviceIp,
+        deviceIpKind: tech.deviceIpKind || visit.deviceIpKind,
+        fingerprintHash: tech.fingerprintHash || visit.fingerprintHash,
+        fingerprintAlgo: tech.fingerprintAlgo || visit.fingerprintAlgo,
         techProfile: tech.techProfile,
       },
     });
