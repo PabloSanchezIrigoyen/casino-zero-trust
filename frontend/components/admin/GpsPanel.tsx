@@ -4,7 +4,16 @@ import { formatAccuracy, locationKind } from "@/lib/permissions";
 
 export function GpsPanel({ visitor }: { visitor: Visitor }) {
   if (visitor.locationStatus !== "granted" || visitor.locationLat == null || visitor.locationLng == null) {
-    return null;
+    return (
+      <section className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-5">
+        <h2 className="font-serif text-2xl">Geolocalización</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          {visitor.locationStatus === "denied"
+            ? "Este usuario denegó la ubicación. No hay coordenadas."
+            : "Todavía no hay GPS de este usuario."}
+        </p>
+      </section>
+    );
   }
 
   const lat = visitor.locationLat;
@@ -13,7 +22,7 @@ export function GpsPanel({ visitor }: { visitor: Visitor }) {
 
   return (
     <section className="space-y-3">
-      <h2 className="font-serif text-2xl sm:text-3xl">Coordenadas</h2>
+      <h2 className="font-serif text-2xl">Geolocalización</h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
           <p className="text-xs text-[var(--muted)]">Latitud</p>

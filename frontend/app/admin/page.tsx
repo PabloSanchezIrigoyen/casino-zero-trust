@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { dispositivo, enLinea, estadoCookie, estadoPermiso } from "@/lib/labels";
-import { deviceIpCaption } from "@/lib/deviceIdentity";
-import { mapsUrl } from "@/lib/maps";
-import type { LabEvent, Visitor } from "@/lib/types";
+import type { Visitor } from "@/lib/types";
 
 type Stats = {
   usuarios: number;
@@ -18,6 +16,8 @@ type Stats = {
   ubicacion: number;
   cookies: number;
 };
+
+type Filter = "all" | "online" | "gps" | "camera" | "mic";
 
 function Permiso({ ok, label }: { ok: string | boolean; label: string }) {
   const state = typeof ok === "boolean" ? (ok ? "granted" : "denied") : ok;
@@ -32,55 +32,31 @@ function Permiso({ ok, label }: { ok: string | boolean; label: string }) {
 
 function VisitorCard({ row }: { row: Visitor }) {
   const ip = row.publicIpv4 || row.publicIp || row.lastIp;
-  const hasGps = row.locationLat != null && row.locationLng != null;
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
-      <Link href={`/admin/visitors/${row.visitorId}`} className="block">
-        <div className="flex items-start justify-between gap-2">
-          <p className="min-w-0 break-all font-medium text-[var(--gold)]">{row.email}</p>
-          <span className={`shrink-0 text-[11px] ${enLinea(row) ? "text-emerald-300" : "text-[var(--muted)]"}`}>
-            {enLinea(row) ? "en línea" : "fuera"}
-          </span>
-        </div>
-        <p className="mt-2 text-sm">
-          {dispositivo(row.deviceType)}
-          {row.browser ? ` · ${row.browser}` : ""}
-        </p>
-        {row.deviceId ? (
-          <p className="mt-2 font-mono text-xs break-all text-[var(--gold-2)]">ID {row.deviceId}</p>
-        ) : null}
-        {row.deviceIp ? (
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {deviceIpCaption(row.deviceIpKind)} · {row.deviceIp}
-          </p>
-        ) : null}
-        {ip ? <p className="mt-1 text-xs text-[var(--muted)]">Proveedor {ip}</p> : null}
-        {hasGps ? (
-          <p className="mt-1 font-mono text-xs text-emerald-300">
-            {row.locationLat}, {row.locationLng}
-          </p>
-        ) : null}
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
-          <Permiso label="Cámara" ok={row.cameraStatus} />
-          <Permiso label="Mic" ok={row.microphoneStatus} />
-          <Permiso label="GPS" ok={row.locationStatus} />
-          <Permiso label="Cookies" ok={estadoCookie(row.cookieConsent, row.cookieConsentAt)} />
-        </div>
-        <p className="mt-3 text-xs text-[var(--muted)]">
-          {row.visitCount} visitas · {new Date(row.lastSeenAt).toLocaleString("es-MX")}
-        </p>
-      </Link>
-      {hasGps ? (
-        <a
-          href={mapsUrl(row.locationLat as number, row.locationLng as number)}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-flex rounded-xl bg-[var(--gold)] px-3 py-2 text-xs font-semibold text-black"
-        >
-          Ver en Google Maps
-        </a>
-      ) : null}
-    </div>
+    <Link
+      href={`/admin/visitors/${row.visitorId}`}
+      className="flex flex-col rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4 transition hover:border-[var(--gold)]/40"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 break-all font-medium text-[var(--gold)]">{row.email}</p>
+        <span className={`shrink-0 text-[11px] ${enLinea(row) ? "text-emerald-300" : "text-[var(--muted)]"}`}>
+          {enLinea(row) ? "en línea" : "fuera"}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-[var(--muted)]">
+        {dispositivo(row.deviceType)}
+        {row.browser ? ` · ${row.browser}` : ""}
+      </p>
+      {row.deviceId ? <p className="mt-2 font-mono text-[11px] break-all text-[var(--gold-2)]">ID {row.deviceId}</p> : null}
+      {ip ? <p className="mt-1 text-xs text-[var(--muted)]">Proveedor {ip}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
+        <Permiso label="Cámara" ok={row.cameraStatus} />
+        <Permiso label="Mic" ok={row.microphoneStatus} />
+        <Permiso label="GPS" ok={row.locationStatus} />
+        <Permiso label="Cookies" ok={estadoCookie(row.cookieConsent, row.cookieConsentAt)} />
+      </div>
+      <p className="mt-auto pt-3 text-xs text-[var(--gold)]">Ver ficha →</p>
+    </Link>
   );
 }
 
@@ -89,9 +65,9 @@ export default function AdminPage() {
   const [token, setToken] = useState("");
   const [stats, setStats] = useState<Stats | null>(null);
   const [visitors, setVisitors] = useState<Visitor[]>([]);
-  const [events, setEvents] = useState<LabEvent[]>([]);
   const [q, setQ] = useState("");
   const [device, setDevice] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
     const saved = sessionStorage.getItem("zt_admin") || "";
@@ -105,19 +81,27 @@ export default function AdminPage() {
   useEffect(() => {
     if (!token) return;
     const load = async () => {
-      const [s, v, e] = await Promise.all([
+      const [s, v] = await Promise.all([
         api.adminStats(token) as Promise<Stats>,
         api.adminVisitors(token, q, device) as Promise<{ visitors: Visitor[] }>,
-        api.adminEvents(token) as Promise<{ events: LabEvent[] }>,
       ]);
       setStats(s);
       setVisitors(v.visitors);
-      setEvents(e.events);
     };
     void load().catch(() => router.replace("/admin/login"));
     const timer = window.setInterval(() => void load().catch(() => undefined), 8000);
     return () => window.clearInterval(timer);
   }, [token, q, device, router]);
+
+  const filtered = useMemo(() => {
+    return visitors.filter((row) => {
+      if (filter === "online") return enLinea(row);
+      if (filter === "gps") return row.locationStatus === "granted";
+      if (filter === "camera") return row.cameraStatus === "granted";
+      if (filter === "mic") return row.microphoneStatus === "granted";
+      return true;
+    });
+  }, [visitors, filter]);
 
   const cards = [
     ["Usuarios", stats?.usuarios],
@@ -128,14 +112,22 @@ export default function AdminPage() {
     ["Cookies", stats?.cookies],
   ];
 
+  const filters: { id: Filter; label: string }[] = [
+    { id: "all", label: "Todos" },
+    { id: "online", label: "En línea" },
+    { id: "gps", label: "Geolocalización" },
+    { id: "camera", label: "Cámara" },
+    { id: "mic", label: "Micrófono" },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--gold)]">Administrador</p>
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl">Quién entró al casino</h1>
+          <h1 className="font-serif text-3xl sm:text-4xl">Usuarios del laboratorio</h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
-            Cuentas reales. Se actualiza solo: dispositivo, IP y permisos del navegador.
+            Entra a cada cuenta para ver info, GPS, permisos y su bitácora.
           </p>
         </div>
         <button
@@ -159,54 +151,52 @@ export default function AdminPage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar correo o IP"
-          className="w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm"
-        />
-        <select
-          value={device}
-          onChange={(e) => setDevice(e.target.value)}
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm sm:w-auto"
-        >
-          <option value="">Todos</option>
-          <option value="desktop">Computadora</option>
-          <option value="mobile">Celular</option>
-          <option value="tablet">Tablet</option>
-        </select>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="no-scrollbar flex gap-1 overflow-x-auto">
+          {filters.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setFilter(item.id)}
+              className={`shrink-0 rounded-xl px-3 py-2 text-sm ${
+                filter === item.id ? "bg-[var(--gold)] font-semibold text-black" : "border border-white/10 text-[var(--muted)]"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar correo o IP"
+            className="w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm"
+          />
+          <select
+            value={device}
+            onChange={(e) => setDevice(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm sm:w-auto"
+          >
+            <option value="">Todos los aparatos</option>
+            <option value="desktop">Computadora</option>
+            <option value="mobile">Celular</option>
+            <option value="tablet">Tablet</option>
+          </select>
+        </div>
       </div>
 
-      {visitors.length === 0 ? (
+      {filtered.length === 0 ? (
         <p className="rounded-2xl border border-[var(--line)] px-4 py-8 text-center text-sm text-[var(--muted)]">
-          Aún no hay usuarios. Cuando alguien cree una cuenta, aparecerá aquí.
+          Nadie en esta categoría. Cuando alguien entre, aparecerá aquí.
         </p>
       ) : (
-        <div className="grid gap-3">
-          {visitors.map((row) => (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((row) => (
             <VisitorCard key={row.visitorId} row={row} />
           ))}
         </div>
       )}
-
-      <section>
-        <h2 className="font-serif text-2xl sm:text-3xl">Actividad reciente</h2>
-        <div className="mt-3 space-y-2">
-          {events.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">Cuando un usuario entre o acepte un permiso, se verá aquí.</p>
-          ) : (
-            events.slice(0, 12).map((event) => (
-              <div key={event.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
-                <p className="break-all text-[11px] text-[var(--gold)]">
-                  {event.visitor?.email} · {new Date(event.createdAt).toLocaleString("es-MX")}
-                </p>
-                <p className="mt-1 text-[var(--muted)]">{event.message}</p>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
     </div>
   );
 }

@@ -46,7 +46,7 @@ export function FichaTecnica({ visitor }: { visitor: Visitor }) {
   return (
     <section className="space-y-5">
       <div>
-        <h2 className="font-serif text-2xl sm:text-3xl">Ficha técnica</h2>
+        <h2 className="font-serif text-2xl">Ficha técnica</h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Solo se muestran datos que el navegador sí entregó. Lo que no expone no aparece.
         </p>
