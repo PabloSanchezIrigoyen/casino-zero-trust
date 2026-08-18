@@ -24,7 +24,7 @@ type LabContext = {
   logout: () => void;
   setCookieChoice: (accepted: boolean) => Promise<void>;
   setLocalStorageOk: (ok: boolean) => Promise<void>;
-  requestCamera: (context: string) => Promise<MediaStream | null>;
+  requestCamera: (context: string, preview?: HTMLVideoElement | null) => Promise<MediaStream | null>;
   requestMicrophone: (context: string) => Promise<MediaStream | null>;
   requestLocation: (context: string) => Promise<void>;
   requestNotifications: (context: string) => Promise<void>;
@@ -300,36 +300,32 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     setVisitor(data.visitor);
   };
 
-  const requestCamera = async (context: string) => {
+  const requestCamera = async (context: string, preview?: HTMLVideoElement | null) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      const track = stream.getVideoTracks()[0];
-      if (track) track.enabled = true;
-      const label = track?.label || "";
-      if (/infrared|\bir\b|windows hello/i.test(label)) {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const rgb = devices.find(
-          (device) =>
-            device.kind === "videoinput" &&
-            device.deviceId !== track.getSettings().deviceId &&
-            !/infrared|\bir\b|windows hello/i.test(device.label),
-        );
-        if (rgb?.deviceId) {
-          stream.getTracks().forEach((item) => item.stop());
-          const next = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: rgb.deviceId } },
-            audio: false,
-          });
-          next.getVideoTracks().forEach((item) => {
-            item.enabled = true;
-          });
-          void reportPermission("camera", "granted", context, { cameraStatus: "granted" });
-          pushToast({
-            title: "Cámara encendida",
-            body: "Mírate en el recuadro. Al salir de la mesa se apaga sola.",
-            tone: "ok",
-          });
-          return next;
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      stream.getVideoTracks().forEach((track) => {
+        track.enabled = true;
+      });
+      if (preview) {
+        preview.setAttribute("playsinline", "true");
+        preview.setAttribute("webkit-playsinline", "true");
+        preview.muted = true;
+        preview.defaultMuted = true;
+        preview.autoplay = true;
+        preview.playsInline = true;
+        preview.srcObject = stream;
+        try {
+          await preview.play();
+        } catch {
+          preview.play().catch(() => undefined);
         }
       }
       void reportPermission("camera", "granted", context, { cameraStatus: "granted" });
