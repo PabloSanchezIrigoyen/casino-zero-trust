@@ -10,9 +10,9 @@ export type SavedLocation = {
 export function geoErrorMessage(error: unknown) {
   if (error && typeof error === "object" && "code" in error) {
     const code = Number((error as { code: number }).code);
-    if (code === 1) return "Denegaste el permiso de ubicación en el navegador.";
+    if (code === 1) return "El navegador no dio ubicación. Si no viste el aviso, toca el candado junto a la URL y permite Ubicación.";
     if (code === 2) return "El GPS no está disponible ahora. Activa ubicación precisa e inténtalo de nuevo.";
-    if (code === 3) return "Se agotó el tiempo esperando el GPS. Inténtalo otra vez cerca de una ventana.";
+    if (code === 3) return "Se agotó el tiempo esperando el GPS. Si no apareció el permiso, revisa el candado de la barra.";
   }
   if (error instanceof Error && error.message) return error.message;
   return "No se pudo obtener la ubicación.";
@@ -26,8 +26,8 @@ export function capturePrecisePosition(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: true,
-      timeout: 8000,
-      maximumAge: 15000,
+      timeout: 120000,
+      maximumAge: 0,
     });
   });
 }

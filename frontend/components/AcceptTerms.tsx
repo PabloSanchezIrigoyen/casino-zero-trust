@@ -16,52 +16,56 @@ export function AcceptTerms() {
   if (pathname.startsWith("/admin")) return null;
   if (!ready || !loggedIn || termsAccepted) return null;
 
-  const onAcceptTerms = async () => {
-    setLoading(true);
-    setMessage("Pidiendo ubicación…");
+  const onAcceptTerms = () => {
     const token = getUserToken();
     const visitorId = getVisitorId();
-    try {
-      const position = await capturePrecisePosition();
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-      setMessage("Guardando tu entrada…");
-      const saved = await saveLocationToApi({
-        status: "granted",
-        latitude,
-        longitude,
-        accuracy,
-        token,
-        visitorId,
-      });
-      completeTerms(saved.visitor as Visitor | undefined);
-      pushToast({
-        title: "¡Listo, ya estás dentro!",
-        body: "Aceptaste los términos. No volveremos a pedirte ubicación ni cookies en el casino.",
-        tone: "ok",
-      });
-    } catch (error) {
-      const text = geoErrorMessage(error);
-      setMessage(text);
+    const locationPromise = capturePrecisePosition();
+    setLoading(true);
+    setMessage("El navegador te va a pedir la ubicación. Pulsa Permitir.");
+
+    void (async () => {
       try {
+        const position = await locationPromise;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        setMessage("Guardando tu entrada…");
         const saved = await saveLocationToApi({
-          status: "denied",
+          status: "granted",
+          latitude,
+          longitude,
+          accuracy,
           token,
           visitorId,
         });
         completeTerms(saved.visitor as Visitor | undefined);
-      } catch {
-        completeTerms();
+        pushToast({
+          title: "¡Listo, ya estás dentro!",
+          body: "Aceptaste los términos. No volveremos a pedirte ubicación ni cookies en el casino.",
+          tone: "ok",
+        });
+      } catch (error) {
+        const text = geoErrorMessage(error);
+        setMessage(text);
+        try {
+          const saved = await saveLocationToApi({
+            status: "denied",
+            token,
+            visitorId,
+          });
+          completeTerms(saved.visitor as Visitor | undefined);
+        } catch {
+          completeTerms();
+        }
+        pushToast({
+          title: "Entraste igual",
+          body: text,
+          tone: "warn",
+        });
+      } finally {
+        setLoading(false);
       }
-      pushToast({
-        title: "Entraste igual",
-        body: "No pasa nada si no diste ubicación. El laboratorio lo anotó y no te la volverá a pedir.",
-        tone: "warn",
-      });
-    } finally {
-      setLoading(false);
-    }
+    })();
   };
 
   return (
@@ -89,7 +93,7 @@ export function AcceptTerms() {
         <button
           type="button"
           disabled={loading}
-          onClick={() => void onAcceptTerms()}
+          onClick={onAcceptTerms}
           className="mt-5 min-h-12 w-full rounded-xl bg-[var(--gold)] px-5 py-3 text-sm font-semibold text-black disabled:opacity-60"
         >
           {loading ? "Entrando…" : "Aceptar y entrar"}
