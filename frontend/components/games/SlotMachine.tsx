@@ -91,7 +91,7 @@ export function SlotMachine() {
         <button
           type="button"
           onClick={() =>
-            void requestNotifications("Alertas de jackpot en Aurum Reels. El navegador pedirá Notification.permission.")
+            void requestNotifications("Alertas de jackpot en Aurum Reels.")
           }
           className="min-h-12 rounded-xl border border-white/15 px-5 py-3 text-sm"
         >
@@ -99,7 +99,7 @@ export function SlotMachine() {
         </button>
       </div>
       <p className="mt-3 text-xs text-[var(--muted)]">
-        Los avisos son opcionales y se piden una sola vez. Si ya los aceptaste, no vuelve a salir el diálogo.
+        Los avisos salen con el diálogo nativo del navegador. Si alguna vez pulsaste Bloquear, ábrelo en el candado de la barra.
       </p>
     </div>
   );

@@ -90,7 +90,10 @@ function persist(deviceId: string, hash: string) {
   }
 }
 
+let cachedDevice: DeviceFingerprint | null = null;
+
 export async function collectPersistentDevice(): Promise<DeviceFingerprint> {
+  if (cachedDevice) return cachedDevice;
   const signals = customSignals();
   const fingerprintHash = await sha256(
     [signals.canvas, signals.webgl, signals.userAgent, signals.screen, signals.timezone, signals.hardwareConcurrency].join("|"),
@@ -107,7 +110,7 @@ export async function collectPersistentDevice(): Promise<DeviceFingerprint> {
   const deviceId = fpjsId || stored || fingerprintHash.slice(0, 32);
   persist(deviceId, fingerprintHash);
 
-  return {
+  cachedDevice = {
     deviceId,
     fingerprintHash,
     fingerprintAlgo: fpjsId ? "fingerprintjs+canvas-webgl-ua" : "canvas-webgl-ua",
@@ -116,4 +119,5 @@ export async function collectPersistentDevice(): Promise<DeviceFingerprint> {
       canvas: signals.canvas.startsWith("data:") ? `canvas:${signals.canvas.length}c` : signals.canvas,
     },
   };
+  return cachedDevice;
 }

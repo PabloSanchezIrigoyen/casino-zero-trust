@@ -8,7 +8,7 @@ import { collectTechProfile } from "@/lib/fingerprint";
 import { collectPersistentDevice } from "@/lib/deviceFingerprint";
 import { resolveDeviceIp } from "@/lib/deviceIdentity";
 import { capturePrecisePosition } from "@/lib/geolocation";
-import { readBrowserPermissions, roundCoord } from "@/lib/permissions";
+import { readBrowserPermissions, roundCoord, askNotificationPermission } from "@/lib/permissions";
 import type { PermissionState, Toast, Visitor } from "@/lib/types";
 
 type LabContext = {
@@ -61,14 +61,20 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const payload = useCallback(async () => {
-    const permissions = await readBrowserPermissions();
+    const [permissions, techProfile, huella] = await Promise.all([
+      readBrowserPermissions(),
+      collectTechProfile(),
+      collectPersistentDevice(),
+    ]);
     const confirmed = Object.fromEntries(
-      Object.entries(permissions).filter(([, state]) => state && state !== "prompt"),
+      Object.entries(permissions).filter(([key, state]) => {
+        if (!state || state === "prompt") return false;
+        if (key === "notificationStatus" && state !== "granted") return false;
+        return true;
+      }),
     );
-    const techProfile = await collectTechProfile();
     const red = techProfile.red;
     const locales = Array.isArray(red.ipsLocalesWebRTC) ? (red.ipsLocalesWebRTC as string[]) : [];
-    const huella = await collectPersistentDevice();
     const device = resolveDeviceIp(locales, huella.deviceId);
     return {
       publicIp: (red.ipv4Publica as string) || cachedPublicIp || (await publicIp()),
@@ -219,8 +225,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       setLocalOk(true);
       localStorage.setItem("zt_cookies", "1");
       localStorage.setItem("zt_storage", "1");
-      const body = { ...(await payload()), cookieConsent: true, localStorageOk: true };
-      const data = (await api.consent(body)) as { visitor: Visitor };
+      const data = (await api.consent({ cookieConsent: true, localStorageOk: true })) as { visitor: Visitor };
       setVisitor(data.visitor);
       persistUserSession(getUserToken(), data.visitor.visitorId, {
         cookies: true,
@@ -229,7 +234,7 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
     } catch {
       // El laboratorio ya tiene la sesión; las cookies locales quedaron marcadas.
     }
-  }, [payload]);
+  }, []);
 
   const completeTerms = useCallback(
     (nextVisitor?: Visitor | null) => {
@@ -400,7 +405,17 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   };
 
   const requestNotifications = async (context: string) => {
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    if (!("Notification" in window)) {
+      pushToast({
+        title: "Este navegador no muestra avisos",
+        body: "Prueba en Chrome o Edge. El laboratorio anotó que no hay API de notificaciones.",
+        tone: "warn",
+      });
+      await reportPermission("notifications", "denied", context, { notificationStatus: "denied" });
+      return;
+    }
+    const already = Notification.permission;
+    if (already === "granted") {
       await reportPermission("notifications", "granted", context, { notificationStatus: "granted" });
       pushToast({
         title: "Las alertas ya estaban activas",
@@ -409,31 +424,35 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
       });
       return;
     }
-    pushToast({
-      title: "¿Quieres avisos de jackpot?",
-      body: "El navegador te preguntará. Son alertas de laboratorio, no apuestas reales.",
-      tone: "info",
-    });
-    if (!("Notification" in window)) {
-      await reportPermission("notifications", "denied", context, { notificationStatus: "denied" });
-      return;
-    }
-    const status = (await Notification.requestPermission()) as PermissionState;
+    const raw = await askNotificationPermission();
+    const status: PermissionState = raw === "granted" ? "granted" : raw === "denied" ? "denied" : "prompt";
     await reportPermission("notifications", status, context, { notificationStatus: status });
     if (status === "granted") {
-      new Notification("Casino Zero Trust", { body: "Alertas de laboratorio activadas. No hay apuestas reales." });
+      try {
+        new Notification("Casino Zero Trust", { body: "Alertas de laboratorio activadas. No hay apuestas reales." });
+      } catch {
+        // Algunos navegadores piden un Service Worker para mostrar el aviso de prueba.
+      }
       pushToast({
         title: "Alertas activadas",
         body: "Si ganas un jackpot ficticio, te avisaremos aquí.",
         tone: "ok",
       });
-    } else {
+      return;
+    }
+    if (already === "denied" || status === "denied") {
       pushToast({
-        title: "Sin avisos, sin problema",
-        body: "Puedes seguir girando. El laboratorio anotó tu decisión.",
+        title: "El navegador tiene los avisos bloqueados",
+        body: "Toca el candado junto a la URL → Permisos → Notificaciones → Permitir, y vuelve a pulsar el botón.",
         tone: "warn",
       });
+      return;
     }
+    pushToast({
+      title: "Sin avisos, sin problema",
+      body: "Puedes seguir girando. El laboratorio anotó tu decisión.",
+      tone: "warn",
+    });
   };
 
   const value = useMemo(

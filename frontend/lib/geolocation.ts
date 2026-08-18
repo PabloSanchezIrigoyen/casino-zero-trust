@@ -24,33 +24,11 @@ export function capturePrecisePosition(): Promise<GeolocationPosition> {
   }
 
   return new Promise((resolve, reject) => {
-    let best: GeolocationPosition | null = null;
-    let done = false;
-
-    const finish = (position: GeolocationPosition) => {
-      if (done) return;
-      done = true;
-      navigator.geolocation.clearWatch(watchId);
-      window.clearTimeout(timer);
-      resolve(position);
-    };
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        if (!best || position.coords.accuracy < best.coords.accuracy) best = position;
-        if (position.coords.accuracy <= 40) finish(position);
-      },
-      (error) => {
-        if (best) finish(best);
-        else reject(error);
-      },
-      { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 },
-    );
-
-    const timer = window.setTimeout(() => {
-      if (best) finish(best);
-      else reject(new Error("Se agotó el tiempo esperando el GPS. En una computadora suele salir solo la red, no metros."));
-    }, 22000);
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 15000,
+    });
   });
 }
 

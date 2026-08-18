@@ -2,16 +2,32 @@ import type { PermissionState } from "./types";
 
 type QueryName = "camera" | "microphone" | "geolocation" | "notifications";
 
+function notificationState(): PermissionState {
+  if (!("Notification" in window)) return "prompt";
+  const permission = Notification.permission;
+  if (permission === "granted") return "granted";
+  if (permission === "denied") return "denied";
+  return "prompt";
+}
+
 async function query(name: QueryName): Promise<PermissionState> {
+  if (name === "notifications") return notificationState();
   try {
     const status = await navigator.permissions.query({ name } as PermissionDescriptor);
     return status.state as PermissionState;
   } catch {
-    if (name === "notifications" && "Notification" in window) {
-      return Notification.permission as PermissionState;
-    }
     return "prompt";
   }
+}
+
+export function askNotificationPermission(): Promise<NotificationPermission> {
+  if (!("Notification" in window)) return Promise.resolve("denied");
+  return new Promise((resolve) => {
+    const outcome = Notification.requestPermission(resolve);
+    if (outcome && typeof outcome.then === "function") {
+      void outcome.then(resolve);
+    }
+  });
 }
 
 export async function readBrowserPermissions() {

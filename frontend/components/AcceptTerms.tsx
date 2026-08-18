@@ -18,7 +18,7 @@ export function AcceptTerms() {
 
   const onAcceptTerms = async () => {
     setLoading(true);
-    setMessage("El navegador te va a pedir la ubicación. En el celular suele ser más precisa.");
+    setMessage("Pidiendo ubicación…");
     const token = getUserToken();
     const visitorId = getVisitorId();
     try {
@@ -92,7 +92,7 @@ export function AcceptTerms() {
           onClick={() => void onAcceptTerms()}
           className="mt-5 min-h-12 w-full rounded-xl bg-[var(--gold)] px-5 py-3 text-sm font-semibold text-black disabled:opacity-60"
         >
-          {loading ? "Esperando al navegador…" : "Aceptar y entrar"}
+          {loading ? "Entrando…" : "Aceptar y entrar"}
         </button>
       </div>
     </div>

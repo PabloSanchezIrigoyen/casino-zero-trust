@@ -107,7 +107,7 @@ function localIps(): Promise<{ locales: string[]; stun: string[]; detalle: strin
       const timer = window.setTimeout(() => {
         pc.close();
         finish();
-      }, 4000);
+      }, 1200);
       const done = () => {
         window.clearTimeout(timer);
         pc.close();
