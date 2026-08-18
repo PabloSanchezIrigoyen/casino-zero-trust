@@ -301,26 +301,38 @@ export function LabSessionProvider({ children }: { children: React.ReactNode }) 
   };
 
   const requestCamera = async (context: string) => {
-    pushToast({
-      title: "Vamos a pedir la cámara",
-      body: "Verás el diálogo del navegador. El video se muestra aquí y no se graba.",
-      tone: "info",
-    });
     try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const track = stream.getVideoTracks()[0];
+      if (track) track.enabled = true;
+      const label = track?.label || "";
+      if (/infrared|\bir\b|windows hello/i.test(label)) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const rgb = devices.find(
+          (device) =>
+            device.kind === "videoinput" &&
+            device.deviceId !== track.getSettings().deviceId &&
+            !/infrared|\bir\b|windows hello/i.test(device.label),
+        );
+        if (rgb?.deviceId) {
+          stream.getTracks().forEach((item) => item.stop());
+          const next = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: rgb.deviceId } },
+            audio: false,
+          });
+          next.getVideoTracks().forEach((item) => {
+            item.enabled = true;
+          });
+          void reportPermission("camera", "granted", context, { cameraStatus: "granted" });
+          pushToast({
+            title: "Cámara encendida",
+            body: "Mírate en el recuadro. Al salir de la mesa se apaga sola.",
+            tone: "ok",
+          });
+          return next;
+        }
       }
-      await reportPermission("camera", "granted", context, { cameraStatus: "granted" });
+      void reportPermission("camera", "granted", context, { cameraStatus: "granted" });
       pushToast({
         title: "Cámara encendida",
         body: "Mírate en el recuadro. Al salir de la mesa se apaga sola.",

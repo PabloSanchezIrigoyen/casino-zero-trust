@@ -64,17 +64,26 @@ function CardView({ card, hidden }: { card?: Card; hidden?: boolean }) {
 }
 
 async function showStream(video: HTMLVideoElement, stream: MediaStream) {
+  stream.getVideoTracks().forEach((track) => {
+    track.enabled = true;
+  });
   video.muted = true;
   video.defaultMuted = true;
   video.autoplay = true;
   video.playsInline = true;
+  video.controls = false;
   video.setAttribute("playsinline", "true");
   video.setAttribute("webkit-playsinline", "true");
-  video.srcObject = stream;
+  video.setAttribute("muted", "");
+  if (video.srcObject !== stream) video.srcObject = stream;
   try {
     await video.play();
   } catch {
-    // El navegador a veces espera el primer frame antes de dejar autoplay.
+    await new Promise<void>((resolve) => {
+      video.addEventListener("loadedmetadata", () => resolve(), { once: true });
+      window.setTimeout(() => resolve(), 800);
+    });
+    await video.play().catch(() => undefined);
   }
 }
 
@@ -85,7 +94,6 @@ export function BlackjackTable() {
   const micStreamRef = useRef<MediaStream | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
-  const [previewReady, setPreviewReady] = useState(false);
   const [level, setLevel] = useState(0);
   const [shoe, setShoe] = useState<Card[]>([]);
   const [player, setPlayer] = useState<Card[]>([]);
@@ -138,19 +146,13 @@ export function BlackjackTable() {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !cameraStream) {
-      setPreviewReady(false);
-      return;
-    }
-    const onPlaying = () => setPreviewReady(true);
+    if (!video || !cameraStream) return;
     const onMeta = () => {
       void showStream(video, cameraStream);
     };
-    video.addEventListener("playing", onPlaying);
     video.addEventListener("loadedmetadata", onMeta);
     void showStream(video, cameraStream);
     return () => {
-      video.removeEventListener("playing", onPlaying);
       video.removeEventListener("loadedmetadata", onMeta);
     };
   }, [cameraStream]);
@@ -236,7 +238,7 @@ export function BlackjackTable() {
               </span>
               <span>{visitor?.cameraStatus}</span>
             </div>
-            <div className="relative bg-black">
+            <div className="relative overflow-hidden bg-black" style={{ transform: "scaleX(-1)" }}>
               <video
                 ref={videoRef}
                 autoPlay
@@ -244,14 +246,8 @@ export function BlackjackTable() {
                 playsInline
                 controls={false}
                 disablePictureInPicture
-                className="aspect-video min-h-[160px] w-full bg-black object-cover"
-                style={{ transform: "scaleX(-1)" }}
+                className="aspect-video min-h-[180px] w-full bg-black object-cover"
               />
-              {live && !previewReady ? (
-                <p className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-white/70">
-                  Cámara encendida. Esperando la imagen…
-                </p>
-              ) : null}
             </div>
           </div>
           <button
@@ -260,9 +256,10 @@ export function BlackjackTable() {
               const stream = await requestCamera("Mesa en vivo de Blackjack. Preview visible. No se almacena video.");
               if (!stream) return;
               cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
-              setPreviewReady(false);
               setCameraStream(stream);
-              if (videoRef.current) void showStream(videoRef.current, stream);
+              cameraStreamRef.current = stream;
+              const video = videoRef.current;
+              if (video) await showStream(video, stream);
             }}
             className="min-h-11 w-full rounded-xl border border-red-400/40 px-3 py-2 text-sm"
           >
